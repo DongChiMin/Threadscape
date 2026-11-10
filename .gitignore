@@ -1,0 +1,4 @@
+# Codex run logs and local backups
+codex_*.txt
+index.before_*.html
+logic.before_*.js
