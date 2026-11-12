@@ -1,227 +1,2693 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Threadscape - Level Editor</title>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Threadscape - Level Editor & Studio</title>
 <style>
-:root{--bg:#2b2320;--card:#3a2f2a;--ink:#f6ead6;--dim:#b9a78f;--acc:#e9a46d;--bad:#ff8a7a;--ok:#8fd19e}
-*{box-sizing:border-box}body{margin:0;font:13px system-ui,sans-serif;background:var(--bg);color:var(--ink)}
-header{display:flex;gap:10px;align-items:center;padding:8px 12px;background:#231b18;position:sticky;top:0;z-index:5;flex-wrap:wrap}
-header h1{font-size:15px;margin:0 8px 0 0}
-main{display:grid;grid-template-columns:minmax(300px,1fr) 380px;gap:12px;padding:12px;align-items:start}
-@media(max-width:900px){main{grid-template-columns:1fr}}
-.card{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:10px}
-.card h2{font-size:13px;margin:0 0 8px;color:var(--acc)}
-button,select,input,textarea{font:inherit}
-button{background:var(--acc);color:#2a1c0c;border:0;border-radius:7px;padding:6px 10px;font-weight:700;cursor:pointer}
-button.alt{background:#55463d;color:var(--ink)}button.on{outline:2px solid #fff}button:disabled{opacity:.4;cursor:default}
-input[type=number],input[type=text],select,textarea{background:#241c19;color:var(--ink);border:1px solid #5a4a40;border-radius:6px;padding:4px 6px}
-input[type=number]{width:64px}textarea{width:100%;min-height:70px;font:12px/1.3 monospace}
-label{display:inline-flex;align-items:center;gap:5px;margin:3px 10px 3px 0}
-.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}
-.sw{width:30px;height:30px;border-radius:6px;border:2px solid transparent;cursor:pointer;position:relative}
-.sw.on{border-color:#fff}.sw small{position:absolute;right:2px;bottom:0;font-size:9px;color:#000a;font-weight:800}
-.sw input{position:absolute;inset:0;opacity:0;cursor:pointer}
-#wrap{overflow:auto;background:#1c1614;border-radius:8px;padding:8px;max-height:calc(100vh - 150px)}
-canvas{image-rendering:pixelated;display:block;touch-action:none;cursor:crosshair}
-.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:12px;font-weight:800;font-size:12px;margin:2px;color:#111}
-.warn{color:var(--bad)}.good{color:var(--ok)}.dim{color:var(--dim)}
-table{border-collapse:collapse;width:100%;font-size:12px}td,th{padding:2px 5px;text-align:left;border-bottom:1px solid #4a3d36}
-tr.sel td{background:#4b3b33}tr.click{cursor:pointer}
-pre{background:#1c1614;padding:8px;border-radius:6px;overflow:auto;max-height:180px;font-size:11px;margin:4px 0}
-.bar{height:8px;background:#241c19;border-radius:4px;position:relative;margin:3px 0}.bar i{position:absolute;top:0;bottom:0;border-radius:4px}
-</style></head><body>
+:root {
+  --bg: #1c1614;
+  --surface: #29201c;
+  --surface-2: #382c27;
+  --surface-3: #4a3b34;
+  --border: #56443c;
+  --ink: #f6ead6;
+  --dim: #bba792;
+  --acc: #e9a46d;
+  --acc-hover: #f3b685;
+  --acc-active: #d68f55;
+  --bad: #ff7b72;
+  --ok: #8fd19e;
+  --warn: #ffd34d;
+  --blue: #58a6ff;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 13px/1.4 var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+button, select, input, textarea { font: inherit; color: inherit; }
+button {
+  background: var(--surface-3);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .15s ease;
+  user-select: none;
+}
+button:hover { background: var(--border); border-color: var(--acc); color: #fff; }
+button:active { transform: translateY(1px); }
+button.primary {
+  background: var(--acc);
+  color: #241407;
+  border-color: var(--acc-hover);
+  font-weight: 700;
+}
+button.primary:hover { background: var(--acc-hover); color: #180d04; }
+button.on {
+  background: var(--acc);
+  color: #241407;
+  border-color: #fff;
+  box-shadow: 0 0 0 2px rgba(233,164,109,.4);
+}
+button.success { background: #235c34; border-color: var(--ok); color: #c9f5d4; }
+button.success:hover { background: #2c7341; }
+button:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+input[type=number], input[type=text], select, textarea {
+  background: #15100e;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+input[type=number]:focus, input[type=text]:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--acc);
+  box-shadow: 0 0 0 2px rgba(233,164,109,.25);
+}
+input[type=number] { width: 60px; }
+textarea { width: 100%; min-height: 60px; font-family: monospace; font-size: 11px; resize: vertical; }
+
+/* Header */
+header {
+  background: #181210;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-left, .header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.brand {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--acc);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 6px;
+}
+.brand-badge {
+  font-size: 10px;
+  background: var(--surface-3);
+  color: var(--dim);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.lang-switch {
+  display: flex;
+  background: #140e0c;
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid var(--border);
+}
+.lang-btn {
+  background: transparent;
+  border: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  color: var(--dim);
+}
+.lang-btn.active {
+  background: var(--acc);
+  color: #241407;
+  font-weight: 700;
+}
+
+/* App Main Layout */
+.app-layout {
+  display: grid;
+  grid-template-columns: 1fr 430px;
+  gap: 14px;
+  padding: 14px;
+  flex: 1;
+  align-items: start;
+}
+@media (max-width: 1080px) {
+  .app-layout { grid-template-columns: 1fr; }
+}
+
+/* Left Canvas Column */
+.canvas-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toolbar-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tool-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #453630;
+}
+.tool-group button {
+  padding: 5px 9px;
+  font-size: 12px;
+  background: transparent;
+  border: 0;
+}
+.tool-group button.on {
+  background: var(--acc);
+  color: #241407;
+}
+.palette-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding-top: 4px;
+  border-top: 1px solid #3d2f29;
+}
+.sw {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 11px;
+  color: rgba(0,0,0,.75);
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  transition: transform .1s ease, border-color .15s ease;
+}
+.sw:hover { transform: scale(1.08); }
+.sw.on {
+  border-color: #fff;
+  transform: scale(1.12);
+  box-shadow: 0 0 0 2px var(--acc);
+}
+.sw.fabric {
+  border-style: dashed;
+  color: var(--dim);
+}
+
+/* Canvas Viewport */
+.canvas-wrapper {
+  background: #140e0c;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 480px;
+  max-height: calc(100vh - 280px);
+  overflow: auto;
+  position: relative;
+}
+canvas {
+  image-rendering: pixelated;
+  display: block;
+  cursor: crosshair;
+  box-shadow: 0 8px 30px rgba(0,0,0,.6);
+  border-radius: 4px;
+}
+.canvas-hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(28,22,20,.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--dim);
+  pointer-events: none;
+}
+
+/* Tapestry Piece Navigator */
+.piece-nav-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.piece-nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.piece-title-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.piece-title-box b {
+  font-size: 14px;
+  color: var(--acc);
+}
+.piece-grid-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  border: 1px solid #453630;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.piece-tile {
+  width: 48px;
+  height: 44px;
+  border-radius: 6px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 2px;
+  transition: all .15s ease;
+}
+.piece-tile:hover {
+  border-color: var(--acc);
+  transform: translateY(-1px);
+}
+.piece-tile.active {
+  background: #473223;
+  border: 2px solid var(--acc);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(233,164,109,.3);
+}
+.piece-tile .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #665;
+}
+.piece-tile.ready .dot { background: var(--ok); }
+.piece-tile.warn .dot { background: var(--warn); }
+.piece-tile.bad .dot { background: var(--bad); }
+
+/* Right Inspector Panel */
+.inspector-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tabs-nav {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+  overflow-x: auto;
+}
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dim);
+  white-space: nowrap;
+  justify-content: center;
+}
+.tab-btn:hover { color: var(--ink); background: rgba(255,255,255,.05); }
+.tab-btn.active {
+  background: var(--surface-3);
+  color: var(--acc);
+  border: 1px solid var(--border);
+}
+
+.panel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.panel-card h3 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--acc);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sub-desc {
+  font-size: 12px;
+  color: var(--dim);
+  margin: 0;
+}
+
+/* Spool Cards & Breakdown */
+.spool-cards-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.spool-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #111;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,.2);
+  transition: transform .1s;
+}
+.spool-chip:hover { transform: scale(1.05); }
+.spool-chip.highlighted {
+  outline: 2px solid #fff;
+  box-shadow: 0 0 10px #fff;
+}
+.stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.stat-table th, .stat-table td {
+  padding: 4px 6px;
+  text-align: left;
+  border-bottom: 1px solid #44352f;
+}
+.stat-table th { color: var(--dim); font-weight: 600; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.badge.ok { background: #1a4225; color: var(--ok); }
+.badge.bad { background: #4a1917; color: var(--bad); }
+.badge.warn { background: #473a11; color: var(--warn); }
+
+/* Difficulty Bar */
+.diff-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface-2);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #473831;
+}
+.diff-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+/* Solution Playback */
+.playback-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+.playback-controls button { padding: 6px 12px; }
+
+/* Modal / Message Toast */
+.toast-msg {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  display: none;
+}
+.toast-msg.show { display: block; }
+.toast-msg.ok { background: #1a4225; color: var(--ok); border: 1px solid var(--ok); }
+.toast-msg.warn { background: #473a11; color: var(--warn); border: 1px solid var(--warn); }
+.toast-msg.bad { background: #4a1917; color: var(--bad); border: 1px solid var(--bad); }
+
+/* Conflict / Explanation Alert Box */
+.conflict-box {
+  background: #3e2617;
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--ink);
+  display: none;
+}
+.conflict-box.show { display: block; }
+.conflict-box b.title { color: var(--warn); display: block; margin-bottom: 4px; font-size: 12px; }
+.conflict-box ul { margin: 4px 0 0 16px; padding: 0; color: var(--dim); }
+.conflict-box li { margin-bottom: 3px; }
+
+.help-box {
+  background: rgba(233,164,109,.08);
+  border: 1px solid rgba(233,164,109,.25);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+  color: var(--dim);
+}
+.help-box b { color: var(--acc); }
+
+/* Code Export Block */
+pre.code-out {
+  background: #140e0c;
+  border: 1px solid var(--border);
+  padding: 8px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 11px;
+  max-height: 140px;
+  overflow: auto;
+  color: var(--dim);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #181210; }
+::-webkit-scrollbar-thumb { background: #4a3b34; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--acc); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
 <header>
- <h1>Level Editor</h1>
- <select id="src" title="Load an existing level"></select><button class="alt" id="load">Load</button>
- <button class="alt" id="blank">New blank</button>
- <label>W<input type="number" id="gw" min="2" max="64" value="8"></label><label>H<input type="number" id="gh" min="2" max="64" value="8"></label><button class="alt" id="resize">Resize</button>
- <span class="dim" id="status"></span>
-</header>
-<main>
-<section>
- <div class="card">
-  <div class="row" id="tools"></div>
-  <div class="row" id="palette"></div>
-  <div class="row">
-   <label><input type="checkbox" id="mirror"> mirror left-right</label>
-   <label><input type="checkbox" id="tapmode"> tapestry mode (8x8 pieces)</label>
-   <label><input type="checkbox" id="showsol"> show solution</label>
-   <label>zoom <input type="range" id="zoom" min="10" max="48" value="26"></label>
-   <button class="alt" id="undo">Undo</button><button class="alt" id="redo">Redo</button>
+  <div class="header-left">
+    <div class="brand">
+      <span>🧵</span>
+      <span data-i18n="appTitle">Threadscape Studio</span>
+      <span class="brand-badge" data-i18n="badgeEditor">Level Editor</span>
+    </div>
+
+    <!-- Level Loader -->
+    <select id="src" style="max-width: 220px;" title="Load level"></select>
+    <button id="loadBtn" data-i18n="loadBtn">Nạp</button>
+    <button id="blankBtn" class="alt" data-i18n="newBlankBtn">Tạo mới</button>
+
+    <div style="display:flex;align-items:center;gap:4px;">
+      <span style="color:var(--dim);font-size:11px;">W:</span>
+      <input type="number" id="gw" min="2" max="64" value="24">
+      <span style="color:var(--dim);font-size:11px;">H:</span>
+      <input type="number" id="gh" min="2" max="64" value="24">
+      <button id="resizeBtn" class="alt" data-i18n="resizeBtn">Đổi cỡ</button>
+    </div>
   </div>
- </div>
- <div id="wrap"><canvas id="cv"></canvas></div>
- <p class="dim" id="hint">Paint with the mouse. Right-click or the eyedropper picks a colour. In tapestry mode click a piece to select it.</p>
-</section>
-<aside>
- <div class="card"><h2>Name</h2>
-  <div class="row"><input type="text" id="name" value="My level" style="flex:1"><input type="text" id="tid" value="mytap" style="width:90px" title="tapestry id"></div>
- </div>
- <div class="card"><h2>Split spools by difficulty</h2>
-  <div class="row"><label>Difficulty <input type="range" id="diff" min="1" max="5" value="3"></label><b id="diffname"></b></div>
-  <div class="row"><label>min length <input type="number" id="minlen" value="2" min="1" max="6"></label><label>max spools <input type="number" id="maxsp" value="12" min="2" max="20"></label><label>seed <input type="number" id="seed" value="1" style="width:76px"></label></div>
-  <div class="row"><button id="split">Split spools</button><button class="alt" id="reroll">Re-roll seed</button><button class="alt" id="splitall" title="tapestry mode: every piece with its own difficulty">Split all pieces</button></div>
-  <div id="splitinfo" class="dim"></div>
- </div>
- <div class="card"><h2>Spools <span id="pieceLabel" class="dim"></span></h2>
-  <div id="chips"></div>
-  <textarea id="spooltext" placeholder="B15 B11 T8 C2 C2" spellcheck="false"></textarea>
-  <div class="row"><button class="alt" id="applyspools">Apply / verify typed spools</button></div>
-  <div id="spoolinfo"></div>
- </div>
- <div class="card"><h2>Pieces</h2><div id="pieces" class="dim">tapestry mode off</div></div>
- <div class="card"><h2>Analysis</h2><div id="analysis"></div></div>
- <div class="card"><h2>Import picture</h2>
-  <input type="file" id="img" accept="image/*">
-  <div class="row"><label>cols <input type="number" id="icols" value="24" min="4" max="64"></label><label>rows <input type="number" id="irows" value="24" min="4" max="64"></label><label>colours <input type="number" id="ik" value="8" min="2" max="11"></label></div>
-  <div class="row"><label><input type="checkbox" id="ibg" checked> most common colour = bare fabric</label><label><input type="checkbox" id="ikeep" checked> keep aspect (rows auto)</label></div>
-  <div class="row"><button id="igo" disabled>Generate grid</button></div>
-  <p class="dim">The picture is shrunk, reduced to the chosen colours (any hex, stored as the level's own palette), cleaned of single stray cells, then you can edit it by hand.</p>
- </div>
- <div class="card"><h2>Export</h2>
-  <div class="row"><button class="alt" data-exp="tap">Tapestry entry (logic.js)</button><button class="alt" data-exp="motif">Mini-level row</button><button class="alt" data-exp="json">JSON</button><button class="alt" id="import">Import JSON</button></div>
-  <pre id="out">pick an export format</pre>
-  <div class="row"><button id="copy" class="alt">Copy</button><button id="dl" class="alt">Download</button></div>
- </div>
-</aside>
+
+  <div class="header-right">
+    <button id="undoBtn" class="alt" title="Ctrl+Z">↩ <span data-i18n="undo">Hoàn tác</span></button>
+    <button id="redoBtn" class="alt" title="Ctrl+Y">↪ <span data-i18n="redo">Làm lại</span></button>
+
+    <!-- Language Selector -->
+    <div class="lang-switch">
+      <button class="lang-btn active" id="langVi" onclick="setLang('vi')">🇻🇳 Tiếng Việt</button>
+      <button class="lang-btn" id="langEn" onclick="setLang('en')">🇬🇧 English</button>
+    </div>
+  </div>
+</header>
+
+<!-- Main App Layout -->
+<main class="app-layout">
+
+  <!-- Left Column: Canvas, Tools, Piece Nav -->
+  <section class="canvas-column">
+
+    <!-- Top Toolbar -->
+    <div class="toolbar-card">
+      <div class="tool-row">
+        <!-- Drawing Tools -->
+        <div class="tool-group" id="toolsGroup">
+          <button class="on" data-tool="pen" title="Phím tắt: P">✏️ <span data-i18n="toolPen">Bút</span></button>
+          <button data-tool="line" title="Phím tắt: L">📏 <span data-i18n="toolLine">Đoạn thẳng</span></button>
+          <button data-tool="fill" title="Phím tắt: F">🪣 <span data-i18n="toolFill">Đổ màu</span></button>
+          <button data-tool="erase" title="Phím tắt: E">🧹 <span data-i18n="toolErase">Tẩy</span></button>
+          <button data-tool="pick" title="Phím tắt: I / Chuột phải">💧 <span data-i18n="toolPick">Hút màu</span></button>
+          <button id="clearBtn" title="Xóa toàn bộ">🗑️ <span data-i18n="toolClear">Xóa hết</span></button>
+        </div>
+
+        <!-- Options -->
+        <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="mirror">
+          <span data-i18n="optMirror">Đối xứng trái-phải</span>
+        </label>
+
+        <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="focusMode">
+          <span data-i18n="optFocusPiece">🎯 Phóng to mảnh 8x8 đang chọn</span>
+        </label>
+
+        <!-- Zoom -->
+        <div style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;">
+          <span style="font-size:11px;color:var(--dim);">Zoom</span>
+          <input type="range" id="zoom" min="12" max="50" value="26" style="width:80px;">
+        </div>
+      </div>
+
+      <!-- Color Palette -->
+      <div class="palette-row" id="paletteRow"></div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="canvas-wrapper" id="canvasWrap">
+      <div class="canvas-hud" id="hudInfo">24x24 &middot; Mảnh 1/9</div>
+      <canvas id="cv"></canvas>
+    </div>
+
+    <!-- Tapestry Piece Navigator (Always visible in Tapestry mode) -->
+    <div class="piece-nav-card" id="pieceNavCard">
+      <div class="piece-nav-header">
+        <div class="piece-title-box">
+          <span>🧩</span>
+          <b id="pieceTitleText">Mảnh 1 / 9 (Hàng 1, Cột 1)</b>
+          <span class="badge ok" id="pieceStatusBadge">Đã chia chỉ</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button id="prevPieceBtn">◀ <span data-i18n="prevPiece">Mảnh trước</span></button>
+          <button id="nextPieceBtn"><span data-i18n="nextPiece">Mảnh sau</span> ▶</button>
+        </div>
+      </div>
+
+      <div class="sub-desc" data-i18n="pieceNavHelp">
+        Bấm vào một ô bên dưới hoặc nhấn nút Trước/Sau để chuyển mảnh. Mỗi ô 8x8 là 1 màn chơi độc lập.
+      </div>
+
+      <!-- 2D Clickable Piece Grid -->
+      <div class="piece-grid-container" id="pieceGridContainer"></div>
+    </div>
+
+  </section>
+
+  <!-- Right Column: Inspector Tabs -->
+  <aside class="inspector-column">
+
+    <!-- Tabs Navigation -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="tabSpools">🧵 <span data-i18n="tabSpools">Cuộn chỉ</span></button>
+      <button class="tab-btn" data-tab="tabSolution">▶️ <span data-i18n="tabSolution">Lời giải</span></button>
+      <button class="tab-btn" data-tab="tabHealth">🩺 <span data-i18n="tabHealth">Kiểm tra</span></button>
+      <button class="tab-btn" data-tab="tabExport">📤 <span data-i18n="tabExport">Áp dụng & Xuất</span></button>
+      <button class="tab-btn" data-tab="tabImport">🖼️ <span data-i18n="tabImport">Nhập ảnh</span></button>
+    </div>
+
+    <!-- TAB 1: SPOOLS & DIFFICULTY -->
+    <div class="panel-card" id="tabSpools">
+      <div>
+        <h3 data-i18n="infoTitle">Thông tin Level</h3>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <input type="text" id="levelName" style="flex:1;" placeholder="Tên level (ví dụ: Duck Pond)">
+          <input type="text" id="levelTid" style="width:100px;" placeholder="ID (vd: my_duck)" title="ID định danh không dấu">
+        </div>
+      </div>
+
+      <!-- Mode Selector -->
+      <div style="background:var(--surface-2);padding:8px 10px;border-radius:8px;border:1px solid #453630;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+          <input type="checkbox" id="tapModeCheckbox" checked>
+          <span data-i18n="tapModeLabel">Chế độ tranh Tapestry (Lưới gồm nhiều mảnh 8x8)</span>
+        </label>
+        <p class="sub-desc" style="margin:4px 0 0 24px;" data-i18n="tapModeHelp">
+          Bật để tạo tranh lớn ghép từ các mảnh 8x8. Tắt nếu chỉ muốn tạo 1 màn chơi nhỏ (Mini-level).
+        </p>
+      </div>
+
+      <!-- Difficulty & Splitting -->
+      <div>
+        <h3 data-i18n="diffCardTitle">Phân chia cuộn chỉ (Spools) theo độ khó</h3>
+        <p class="sub-desc" style="margin:4px 0 8px;" data-i18n="diffExplain">
+          Độ khó quyết định số bẫy (đường đi lừa khiến kẹt chỉ). Level càng khó, người chơi càng phải suy nghĩ kỹ thứ tự đi chỉ.
+        </p>
+
+        <div class="diff-bar-container">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <b id="diffLabelText" style="color:var(--acc);">Vừa phải (Medium) - 35% bẫy</b>
+            <span style="font-size:11px;color:var(--dim);" id="diffHeartsText">❤️ 3 tim</span>
+          </div>
+          <input type="range" id="diffRange" min="1" max="5" value="3" style="width:100%;">
+          <div class="diff-labels">
+            <span>1: Rất dễ</span>
+            <span>2: Nhẹ nhàng</span>
+            <span>3: Vừa</span>
+            <span>4: Khó</span>
+            <span>5: Cực khó</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Split Settings -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--dim);display:block;" data-i18n="minLen">Dài tối thiểu</label>
+          <input type="number" id="minLenInput" min="1" max="6" value="1" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--dim);display:block;" data-i18n="maxSpools">Max cuộn / mảnh</label>
+          <input type="number" id="maxSpoolsInput" min="2" max="16" value="8" style="width:100%;" title="Khay chứa của game tối đa 12 cuộn. Đặt số cuộn tối đa cho mỗi mảnh 8x8.">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--dim);display:block;" data-i18n="seed">Hạt giống (-1: ngẫu nhiên)</label>
+          <input type="number" id="seedInput" value="-1" style="width:100%;">
+        </div>
+      </div>
+
+      <!-- Split Action Buttons -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="splitCurrentBtn" class="primary" style="flex:1;">⚡ <span data-i18n="splitPieceBtn">Chia chỉ mảnh này</span></button>
+        <button id="splitAllBtn" class="alt">⚡ <span data-i18n="splitAllBtn">Chia TẤT CẢ các mảnh</span></button>
+        <button id="rerollSeedBtn" class="alt" title="Thử cách chia ngẫu nhiên khác">🎲</button>
+      </div>
+
+      <!-- Conflict & Explanation Box (Shown when maxSpools or config cannot be met) -->
+      <div class="conflict-box" id="conflictBox">
+        <b class="title" id="conflictTitle">⚠️ Không thể giảm xuống số cuộn đã đặt!</b>
+        <div id="conflictBody"></div>
+      </div>
+
+      <!-- Spool Breakdown Visualization -->
+      <div style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <b style="font-size:12px;color:var(--acc);" data-i18n="spoolsBreakdownTitle">Danh sách cuộn chỉ tạo ra</b>
+          <span style="font-size:11px;color:var(--dim);" id="spoolCountInfo">0 cuộn (Max 8)</span>
+        </div>
+
+        <div class="spool-cards-list" id="spoolChipsList">
+          <span style="color:var(--dim);font-size:11px;" data-i18n="noSpoolsYet">Chưa có cuộn chỉ. Hãy bấm "Chia chỉ mảnh này" ở trên.</span>
+        </div>
+
+        <!-- Color Matching Table -->
+        <div style="margin-top:10px;">
+          <b style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;" data-i18n="colorMatchTitle">Kiểm tra khớp số ô thêu:</b>
+          <table class="stat-table" id="colorStatTable">
+            <thead>
+              <tr>
+                <th data-i18n="colColor">Màu</th>
+                <th data-i18n="colCells">Số ô</th>
+                <th data-i18n="colSpools">Cuộn chỉ</th>
+                <th data-i18n="colStatus">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="colorStatBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Advanced Raw Spool Editor -->
+      <details style="font-size:12px;color:var(--dim);">
+        <summary style="cursor:pointer;font-weight:600;" data-i18n="advManualSpool">Tự chỉnh chuỗi chỉ thủ công (B15 G8...)</summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+          <textarea id="rawSpoolText" placeholder="Ví dụ: B15 B11 T8 C2 C2"></textarea>
+          <button id="applyRawSpoolsBtn" class="alt" style="align-self:flex-start;" data-i18n="verifyManualSpools">Xác nhận & Kiểm tra</button>
+        </div>
+      </details>
+
+    </div>
+
+    <!-- TAB 2: SOLUTION & PLAYER -->
+    <div class="panel-card" id="tabSolution" style="display:none;">
+      <h3 data-i18n="solutionTitle">Xem cách giải (Solution)</h3>
+      <p class="sub-desc" data-i18n="solutionDesc">
+        Hệ thống tự động tìm đường đi giải đố hợp lệ. Bạn có thể xem toàn bộ đường đi hoặc lọc riêng từng cuộn chỉ.
+      </p>
+
+      <div style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;display:flex;flex-direction:column;gap:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+          <input type="checkbox" id="showSolutionToggle" checked>
+          <span data-i18n="showSolCheckbox">Vẽ đường giải đố lên bàn cờ</span>
+        </label>
+
+        <!-- Filter by spool -->
+        <div>
+          <label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;" data-i18n="filterSpoolLabel">Xem riêng từng cuộn chỉ:</label>
+          <select id="solutionSpoolFilter" style="width:100%;">
+            <option value="-1" data-i18n="viewAllSpools">Tất cả cuộn chỉ</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Interactive Playback Controls -->
+      <div>
+        <b style="font-size:12px;color:var(--acc);display:block;margin-bottom:6px;" data-i18n="stepPlaybackTitle">Mô phỏng thêu từng bước:</b>
+        <div class="playback-controls">
+          <button id="stepStartBtn" title="Về đầu">⏮</button>
+          <button id="stepPrevBtn" title="Bước trước">◀</button>
+          <button id="stepPlayBtn" class="primary" title="Tự động chạy">▶ Phát</button>
+          <button id="stepNextBtn" title="Bước sau">▶</button>
+          <button id="stepEndBtn" title="Đến cuối">⏭</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:11px;color:var(--dim);">
+          <span id="stepProgressLabel">Bước 0 / 0</span>
+          <span id="currentSpoolLabel">-</span>
+        </div>
+      </div>
+
+      <div class="help-box" data-i18n="solutionTips">
+        <b>Mẹo:</b> Mỗi cuộn chỉ có 1 hình tròn đánh số là điểm bắt đầu. Đường nối chỉ rõ đường đi của kim thêu. Chọn một cuộn chỉ ở trên để nhìn rõ hướng đi mà không bị rối mắt!
+      </div>
+    </div>
+
+    <!-- TAB 3: HEALTH & ANALYSIS -->
+    <div class="panel-card" id="tabHealth" style="display:none;">
+      <h3 data-i18n="healthTitle">Kiểm tra tính hợp lệ của Level</h3>
+      <p class="sub-desc" data-i18n="healthDesc">
+        Tự động quét và phát hiện các lỗi thiết kế trước khi đưa vào game.
+      </p>
+
+      <div id="healthReportBox"></div>
+    </div>
+
+    <!-- TAB 4: EXPORT & APPLY -->
+    <div class="panel-card" id="tabExport" style="display:none;">
+      <div>
+        <h3 data-i18n="applyTitle">🚀 Áp dụng trực tiếp vào Game</h3>
+        <p class="sub-desc" data-i18n="applyHelp">
+          Ghi thẳng vào <b>logic.js</b> và <b>index.html</b>.
+        </p>
+      </div>
+
+      <!-- Method 1: Local Server 1-Click Apply -->
+      <div style="background:var(--surface-2);padding:10px 12px;border-radius:8px;border:1px solid #453630;display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <b style="font-size:12px;color:var(--acc);">⚡ Phương án 1: Ghi đè tự động 1-Click</b>
+          <span id="serverStatusBadge" class="badge warn" style="font-size:11px;">Đang kiểm tra server...</span>
+        </div>
+        <p class="sub-desc" style="margin:0;">
+          Không cần chọn file thủ công! Chỉ cần mở file <code>start_editor.bat</code> (hoặc chạy <code>node server.js</code>) trong thư mục game.
+        </p>
+        <button id="applyServerBtn" class="primary success" style="width:100%;justify-content:center;font-size:13px;padding:8px 12px;">
+          ⚡ <span data-i18n="applyServerBtn">Ghi đè 1-Click (Không cần chọn file)</span>
+        </button>
+        <div class="toast-msg" id="serverApplyMsg"></div>
+      </div>
+
+      <!-- Method 2: Manual File Picker Fallback -->
+      <details style="font-size:12px;color:var(--dim);background:var(--surface-2);padding:8px 10px;border-radius:8px;border:1px solid #453630;">
+        <summary style="cursor:pointer;font-weight:600;">📁 Phương án 2: Chọn file thủ công (Nếu không bật server)</summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+          <button id="pickFilesBtn" class="alt">📁 <span data-i18n="pickFilesBtn">Chọn logic.js & index.html</span></button>
+          <button id="applyGameBtn" class="primary success" disabled>✅ <span data-i18n="applyNowBtn">Ghi đè thủ công</span></button>
+          <div class="toast-msg" id="applyStatusMsg"></div>
+        </div>
+      </details>
+
+      <!-- Code Export -->
+      <div>
+        <h3 data-i18n="exportCodeTitle">Sao chép mã nguồn thủ công</h3>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;">
+          <button class="alt" id="expTapBtn" data-i18n="expTapBtn">Tapestry entry (logic.js)</button>
+          <button class="alt" id="expMotifBtn" data-i18n="expMotifBtn">Mini-level row</button>
+          <button class="alt" id="expJsonBtn">JSON</button>
+          <button class="alt" id="importJsonBtn" data-i18n="importJsonBtn">Nhập JSON</button>
+        </div>
+        <pre class="code-out" id="exportOutput">// Bấm nút ở trên để xem mã xuất</pre>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button id="copyCodeBtn" class="alt">📋 <span data-i18n="copyBtn">Sao chép</span></button>
+          <button id="downloadCodeBtn" class="alt">💾 <span data-i18n="downloadBtn">Tải file</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: IMPORT PICTURE -->
+    <div class="panel-card" id="tabImport" style="display:none;">
+      <h3 data-i18n="importPicTitle">Chuyển ảnh thành Level thêu</h3>
+      <p class="sub-desc" data-i18n="importPicDesc">
+        Tải ảnh lên (pixel art, logo, tranh hoạt hình...), hệ thống sẽ thu nhỏ và giảm màu thành bảng thêu.
+      </p>
+
+      <input type="file" id="imgUploadInput" accept="image/*">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--dim);display:block;" data-i18n="imgCols">Số cột (W)</label>
+          <input type="number" id="imgCols" min="8" max="64" value="24" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--dim);display:block;" data-i18n="imgRows">Số hàng (H)</label>
+          <input type="number" id="imgRows" min="8" max="64" value="24" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--dim);display:block;" data-i18n="imgColors">Số màu</label>
+          <input type="number" id="imgColors" min="2" max="11" value="7" style="width:100%;">
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="imgAutoBg" checked>
+          <span data-i18n="imgAutoBg">Màu phổ biến nhất làm màu vải nền (không cần thêu)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="imgKeepAspect" checked>
+          <span data-i18n="imgKeepAspect">Giữ nguyên tỉ lệ ảnh</span>
+        </label>
+      </div>
+
+      <button id="generateFromImgBtn" class="primary" disabled>🎨 <span data-i18n="generateGridBtn">Tạo lưới từ ảnh</span></button>
+    </div>
+
+  </aside>
 </main>
-<input type="file" id="jsonfile" accept=".json" hidden>
+
+<!-- Hidden inputs for file operations -->
+<input type="file" id="jsonFileInput" accept=".json" hidden>
+<input type="color" id="nativeColorPicker" hidden>
+
+<!-- Logic file dependency -->
 <script src="logic.js"></script>
+
 <script>
-const $=id=>document.getElementById(id),L=Logic,LET='KNBTVGRPOYC';
-const BASE={R:'#E0534A',G:'#5AA05A',B:'#4A8FD6',Y:'#F2C230',V:'#8A62C6',P:'#EC86AD',O:'#F08A3C',N:'#8B5A3C',T:'#2FA89A',K:'#4A4A55',C:'#FFF8E7'};
-let S=null,cur='R',tool='pen',sel=0,hist=[],redo=[],drag=false,pending=null,solCache=null;
-// ---------- state ----------
-function blank(w,h,name='My level'){return{name,w,h,cells:Array(w*h).fill('.'),palette:{...BASE},background:'#f1e1c4',tap:false,diff:3,diffs:[],spools:{},baked:{}}}
-const rowsOf=(s,x0=0,y0=0,w=s.w,h=s.h)=>{const r=[];for(let y=y0;y<y0+h;y++){let t='';for(let x=x0;x<x0+w;x++)t+=s.cells[y*s.w+x];r.push(t)}return r};
-const pieceCount=s=>s.tap?(s.w/8)*(s.h/8):1;
-const pieceBox=(s,i)=>s.tap?{x:i%(s.w/8)*8,y:(i/(s.w/8)|0)*8,w:8,h:8}:{x:0,y:0,w:s.w,h:s.h};
-const pieceRows=(s,i)=>{const b=pieceBox(s,i);return rowsOf(s,b.x,b.y,b.w,b.h)};
-function snapshot(){hist.push(JSON.stringify({cells:S.cells,w:S.w,h:S.h,palette:S.palette}));if(hist.length>200)hist.shift();redo=[]}
-function restore(j){const o=JSON.parse(j);S.cells=o.cells;S.w=o.w;S.h=o.h;S.palette=o.palette;solCache=null;refresh()}
-function save(){try{localStorage.setItem('stitchEditor',JSON.stringify(S))}catch{}}
-// ---------- sources ----------
-function buildSources(){const o=[];o.push('<optgroup label="Mini levels">');L.generateLevels().forEach((l,i)=>o.push(`<option value="m${i}">L${l.number} ${l.name}</option>`));o.push('</optgroup><optgroup label="Tapestries (whole picture)">');
- L.makePictures().forEach((p,i)=>o.push(`<option value="t${i}">${p.name} (${p.w}x${p.h})</option>`));o.push('</optgroup>');const d=localStorage.getItem('stitchEditor');if(d)o.push('<optgroup label="Draft"><option value="d">Last autosave</option></optgroup>');$('src').innerHTML=o.join('')}
-function loadSource(v){
- if(v==='d'){S=JSON.parse(localStorage.getItem('stitchEditor'));}
- else if(v[0]==='m'){const lv=L.generateLevels()[+v.slice(1)];S=blank(lv.w,lv.h,lv.name);S.cells=lv.cells.map(c=>c==='#'?'.':c==='.'?'.':c.toUpperCase());
-  S.spools[0]=lv.spools.map(s=>s.color+s.length).join(' ');S.diff=Math.min(5,Math.max(1,Math.round(lv.number/4)))}
- else{const p=L.makePictures()[+v.slice(1)];S=blank(p.w,p.h,p.name);S.cells=p.rows.join('').split('');S.palette={...BASE,...p.palette};S.background=p.background;S.tap=true;S.diff=p.diff??3;S.diffs=p.diffs?[...p.diffs]:[];
-  (p.baked||[]).forEach((t,i)=>S.spools[i]=t);$('tid').value=p.id}
- hist=[];redo=[];sel=0;solCache=null;$('name').value=S.name;refresh(true)}
-// ---------- drawing ----------
-const cv=$('cv'),g=cv.getContext('2d');let cs=26;
-function draw(){cs=+$('zoom').value;cv.width=S.w*cs;cv.height=S.h*cs;g.fillStyle=S.background;g.fillRect(0,0,cv.width,cv.height);
- for(let y=0;y<S.h;y++)for(let x=0;x<S.w;x++){const c=S.cells[y*S.w+x];if(c==='.')continue;g.fillStyle=S.palette[c]||'#f0f';g.fillRect(x*cs,y*cs,cs,cs)}
- g.strokeStyle='#0003';g.lineWidth=1;g.beginPath();for(let x=0;x<=S.w;x++){g.moveTo(x*cs+.5,0);g.lineTo(x*cs+.5,S.h*cs)}for(let y=0;y<=S.h;y++){g.moveTo(0,y*cs+.5);g.lineTo(S.w*cs,y*cs+.5)}g.stroke();
- if(S.tap){g.strokeStyle='#fff8';g.lineWidth=2;g.beginPath();for(let x=0;x<=S.w;x+=8){g.moveTo(x*cs,0);g.lineTo(x*cs,S.h*cs)}for(let y=0;y<=S.h;y+=8){g.moveTo(0,y*cs);g.lineTo(S.w*cs,y*cs)}g.stroke();
-  const b=pieceBox(S,sel);g.strokeStyle='#ffd34d';g.lineWidth=3;g.strokeRect(b.x*cs+1.5,b.y*cs+1.5,b.w*cs-3,b.h*cs-3)}
- if($('showsol').checked)drawSolution()}
-function drawSolution(){const sol=solutionFor(sel);if(!sol)return;const b=pieceBox(S,sel);g.lineWidth=Math.max(2,cs*.14);g.lineJoin='round';
- sol.forEach(({color,path},k)=>{g.strokeStyle='#000c';g.fillStyle='#fff';g.beginPath();path.forEach((i,j)=>{const x=(b.x+i%b.w+.5)*cs,y=(b.y+(i/b.w|0)+.5)*cs;j?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();
-  const i0=path[0],x0=(b.x+i0%b.w+.5)*cs,y0=(b.y+(i0/b.w|0)+.5)*cs;g.beginPath();g.arc(x0,y0,cs*.28,0,7);g.fill();g.fillStyle='#000';g.font='bold '+Math.round(cs*.32)+'px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(k+1,x0,y0)})}
-function solutionFor(i){const t=S.spools[i];if(!t)return null;const k=i+'|'+t+'|'+rowsKey(i);if(solCache&&solCache.k===k)return solCache.v;let v=null;try{v=L.levelFromBaked(0,'x',pieceRows(S,i),t).solution}catch{}solCache={k,v};return v}
-const rowsKey=i=>pieceRows(S,i).join('');
-// ---------- tools ----------
-const TOOLS=[['pen','Pen'],['erase','Eraser'],['fill','Fill'],['pick','Pick'],['line','Line']];
-function buildTools(){$('tools').innerHTML=TOOLS.map(([k,n])=>`<button class="alt ${tool===k?'on':''}" data-tool="${k}">${n}</button>`).join('')+'<button class="alt" id="clearall">Clear</button>';
- $('tools').onclick=e=>{const b=e.target.closest('[data-tool]');if(b){tool=b.dataset.tool;buildTools()}if(e.target.id==='clearall'){snapshot();S.cells.fill('.');refresh()}}}
-function buildPalette(){$('palette').innerHTML=Object.keys(BASE).map(c=>`<div class="sw ${cur===c?'on':''}" data-c="${c}" style="background:${S.palette[c]}" title="${c}: click to select, double-click to change the colour"><small>${c}</small></div>`).join('')+`<div class="sw ${cur==='.'?'on':''}" data-c="." style="background:${S.background};border-style:dashed;border-color:${cur==='.'?'#fff':'#888'}" title="bare fabric"><small>.</small></div><input type="color" id="colorpick" hidden>`;
- $('palette').onclick=e=>{const s=e.target.closest('.sw');if(s){cur=s.dataset.c;buildPalette()}};
- $('palette').ondblclick=e=>{const s=e.target.closest('.sw');if(!s)return;const c=s.dataset.c,inp=$('colorpick');inp.value=c==='.'?S.background:S.palette[c];inp.oninput=()=>{c==='.'?S.background=inp.value:S.palette[c]=inp.value;buildPalette();draw();save()};inp.click()}}
-const at=e=>{const r=cv.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/cs),y=Math.floor((e.clientY-r.top)/cs);return x>=0&&y>=0&&x<S.w&&y<S.h?[x,y]:null};
-function setCell(x,y,c){S.cells[y*S.w+x]=c;if($('mirror').checked)S.cells[y*S.w+(S.w-1-x)]=c}
-function flood(x,y,c){const t=S.cells[y*S.w+x];if(t===c)return;const q=[[x,y]];while(q.length){const [a,b]=q.pop();if(a<0||b<0||a>=S.w||b>=S.h||S.cells[b*S.w+a]!==t)continue;setCell(a,b,c);q.push([a+1,b],[a-1,b],[a,b+1],[a,b-1])}}
-let lineStart=null;
-cv.addEventListener('pointerdown',e=>{const p=at(e);if(!p)return;cv.setPointerCapture(e.pointerId);
- if(S.tap&&e.shiftKey){sel=(p[1]>>3)*(S.w/8)+(p[0]>>3);refresh();return}
- if(e.button===2||tool==='pick'){const c=S.cells[p[1]*S.w+p[0]];cur=c;tool=tool==='pick'?'pen':tool;buildTools();buildPalette();return}
- snapshot();const c=tool==='erase'?'.':cur;
- if(tool==='fill'){flood(p[0],p[1],c);refresh();return}
- if(tool==='line'){lineStart=p;return}
- drag=true;setCell(p[0],p[1],c);draw()});
-cv.addEventListener('pointermove',e=>{if(!drag)return;const p=at(e);if(!p)return;setCell(p[0],p[1],tool==='erase'?'.':cur);draw()});
-cv.addEventListener('pointerup',e=>{if(lineStart){const p=at(e)||lineStart,[x0,y0]=lineStart,[x1,y1]=p,n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0))||1;for(let i=0;i<=n;i++)setCell(Math.round(x0+(x1-x0)*i/n),Math.round(y0+(y1-y0)*i/n),cur);lineStart=null;refresh()}
- if(drag){drag=false;refresh()}
- if(S.tap&&!e.shiftKey&&!drag){const p=at(e);if(p&&tool!=='pen'&&false){}}});
-cv.addEventListener('contextmenu',e=>e.preventDefault());
-cv.addEventListener('dblclick',e=>{const p=at(e);if(S.tap&&p){sel=(p[1]>>3)*(S.w/8)+(p[0]>>3);refresh()}});
-// ---------- analysis ----------
-function comps(rows){const h=rows.length,w=rows[0].length,seen=new Set(),out={};for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=rows[y][x];if(c==='.'||seen.has(y*w+x))continue;const q=[[x,y]];seen.add(y*w+x);let n=0;
-  for(let k=0;k<q.length;k++){const [cx,cy]=q[k];n++;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=w||ny>=h||seen.has(ny*w+nx)||rows[ny][nx]!==c)continue;seen.add(ny*w+nx);q.push([nx,ny])}}
-  (out[c]=out[c]||[]).push(n)}return out}
-function analyze(){const rows=pieceRows(S,sel),cm=comps(rows),total=rows.join('').replace(/\./g,'').length,w=[];let h='';
- for(const c of Object.keys(cm).sort()){const sizes=cm[c].sort((a,b)=>b-a),sum=sizes.reduce((a,b)=>a+b,0);const single=sizes.filter(n=>n<2).length;if(single)w.push(`${c}: ${single} isolated single cell(s) cannot be stitched with min length 2`);
-  h+=`<span class="chip" style="background:${S.palette[c]}">${c} ${sum}</span><span class="dim">regions: ${sizes.join(', ')}</span><br>`}
- const t=S.spools[sel];if(t){const per={};t.trim().split(/\s+/).forEach(x=>{if(x)per[x[0]]=(per[x[0]]||0)+ +x.slice(1)});for(const c of Object.keys(cm)){const sum=cm[c].reduce((a,b)=>a+b,0);if((per[c]||0)!==sum)w.push(`${c}: spools total ${per[c]||0} but ${sum} cells (re-split)`)}for(const c of Object.keys(per))if(!cm[c])w.push(`${c}: spools exist but no cells`)}
- $('analysis').innerHTML=`<div>${total} cells in ${S.tap?'piece '+(sel+1):'this level'}</div>${h||'<span class="dim">empty</span>'}${w.length?'<p class="warn">'+w.join('<br>')+'</p>':'<p class="good">no problems found</p>'}`}
-// ---------- splitting ----------
-const diffName=()=>L.DIFF_NAME[+$('diff').value]+' (target '+Math.round(L.TRAP_TARGET[+$('diff').value]*100)+'% traps)';
-function opts(i,d){return{diff:d,seed:(+$('seed').value||1)+i*17,name:S.name,number:i+1,minLen:+$('minlen').value,maxSpools:+$('maxsp').value}}
-function splitPiece(i,d){const lv=L.splitLevel(pieceRows(S,i),opts(i,d));S.spools[i]=L.spoolText(lv);S.baked[i]={trap:lv.trap,target:lv.trapTarget,range:lv.trapRange,hearts:L.DIFF_HEARTS[d]};return lv}
-function doSplit(all){$('splitinfo').textContent='working...';setTimeout(()=>{try{snapshot();const idx=all?[...Array(pieceCount(S)).keys()]:[sel];for(const i of idx){const d=S.tap?(S.diffs[i]??S.diff):+$('diff').value;if(!pieceRows(S,i).join('').replace(/\./g,''))continue;splitPiece(i,d)}
-   if(!all&&S.tap)S.diffs[sel]=+$('diff').value;solCache=null;refresh();const over=idx.filter(i=>S.spools[i]&&S.spools[i].trim().split(/\s+/).length>+$('maxsp').value);$('splitinfo').innerHTML='<span class="good">done</span>'+(over.length?'<br><span class="warn">piece(s) '+over.map(i=>i+1).join(', ')+' exceed '+$('maxsp').value+' spools (the game tray holds 12): simplify the art there or raise the difficulty</span>':'')}catch(e){$('splitinfo').innerHTML='<span class="warn">'+e.message+'</span>'}},20)}
-function showSpools(){const t=S.spools[sel]||'',info=S.baked[sel];$('pieceLabel').textContent=S.tap?`(piece ${sel+1})`:'';$('spooltext').value=t;
- $('chips').innerHTML=t.trim()?t.trim().split(/\s+/).map(x=>`<span class="chip" style="background:${S.palette[x[0]]||'#888'}">${x}</span>`).join(''):'<span class="dim">no spools yet - press Split spools</span>';
- if(info){const lo=info.range[0],hi=info.range[1],tg=info.target,tr=info.trap;$('spoolinfo').innerHTML=`<div>trap rate <b>${tr}</b> (target ${tg}) &middot; reachable ${lo}-${hi} &middot; hearts ${info.hearts}</div><div class="bar"><i style="left:${lo*100}%;width:${Math.max(1,(hi-lo)*100)}%;background:#6b5a4f"></i><i style="left:${tg*100-.5}%;width:1%;background:#ffd34d"></i><i style="left:${tr*100-.5}%;width:1%;background:#8fd19e"></i></div><div class="dim">grey = range this art allows, yellow = target, green = result. If the target is outside the grey band, change the picture.</div>`}else $('spoolinfo').innerHTML=''}
-$('applyspools').onclick=()=>{try{const t=$('spooltext').value.trim(),lv=L.levelFromBaked(0,S.name,pieceRows(S,sel),t);let rej=0,att=0;const rng=L.mulberry32(5);
-  for(const c of new Set(lv.spools.map(s=>s.color))){const [r,a]=L.trapCount(lv,c,lv.spools.filter(s=>s.color===c).map(s=>s.length),rng,10);rej+=r;att+=a}
-  snapshot();S.spools[sel]=t;S.baked[sel]={trap:att?+(rej/att).toFixed(2):0,target:L.TRAP_TARGET[+$('diff').value],range:[0,1],hearts:L.DIFF_HEARTS[+$('diff').value]};solCache=null;refresh();$('spoolinfo').innerHTML+='<p class="good">verified: solvable</p>'}catch(e){$('spoolinfo').innerHTML='<p class="warn">'+e.message+'</p>'}};
-function showPieces(){if(!S.tap){$('pieces').textContent='tapestry mode off (the whole grid is one level)';return}
- let h='<table><tr><th>#</th><th>diff</th><th>spools</th><th>trap</th></tr>';for(let i=0;i<pieceCount(S);i++){const b=S.baked[i],cells=pieceRows(S,i).join('').replace(/\./g,'').length;h+=`<tr class="click ${i===sel?'sel':''}" data-p="${i}"><td>${i+1}</td><td>${S.diffs[i]??S.diff}</td><td>${S.spools[i]?S.spools[i].split(/\s+/).length:cells?'-':'empty'}</td><td>${b?b.trap:''}</td></tr>`}
- $('pieces').innerHTML=h+'</table><p class="dim">Click a row (or double-click a piece) to select it. Each piece has its own difficulty.</p>'}
-$('pieces').onclick=e=>{const r=e.target.closest('[data-p]');if(r){sel=+r.dataset.p;$('diff').value=S.diffs[sel]??S.diff;refresh()}};
-// ---------- refresh ----------
-function refresh(rebuild){if(rebuild){$('gw').value=S.w;$('gh').value=S.h;$('tapmode').checked=S.tap;$('diff').value=S.diffs[sel]??S.diff;buildTools();buildPalette()}
- $('diffname').textContent=diffName();draw();analyze();showSpools();showPieces();save()}
-// ---------- header / inputs ----------
-$('load').onclick=()=>loadSource($('src').value);
-$('blank').onclick=()=>{S=blank(+$('gw').value||8,+$('gh').value||8);hist=[];sel=0;$('name').value=S.name;refresh(true)};
-$('resize').onclick=()=>{snapshot();const w=Math.max(2,Math.min(64,+$('gw').value)),h=Math.max(2,Math.min(64,+$('gh').value)),n=Array(w*h).fill('.');for(let y=0;y<Math.min(h,S.h);y++)for(let x=0;x<Math.min(w,S.w);x++)n[y*w+x]=S.cells[y*S.w+x];S.w=w;S.h=h;S.cells=n;if(S.tap&&(w%8||h%8)){S.tap=false;$('tapmode').checked=false}S.spools={};S.baked={};sel=0;refresh()};
-$('tapmode').onchange=()=>{if($('tapmode').checked&&(S.w%8||S.h%8)){alert('Grid must be a multiple of 8 in both directions (use Resize).');$('tapmode').checked=false;return}S.tap=$('tapmode').checked;S.spools={};S.baked={};sel=0;refresh()};
-$('diff').oninput=()=>{$('diffname').textContent=diffName();if(S.tap)S.diffs[sel]=+$('diff').value;save()};
-$('name').oninput=()=>{S.name=$('name').value;save()};
-$('split').onclick=()=>doSplit(false);$('splitall').onclick=()=>doSplit(true);
-$('reroll').onclick=()=>{$('seed').value=(+$('seed').value||1)+1+(Math.random()*50|0);doSplit(false)};
-$('zoom').oninput=draw;$('showsol').onchange=draw;
-$('undo').onclick=()=>{if(!hist.length)return;redo.push(JSON.stringify({cells:S.cells,w:S.w,h:S.h,palette:S.palette}));restore(hist.pop())};
-$('redo').onclick=()=>{if(!redo.length)return;hist.push(JSON.stringify({cells:S.cells,w:S.w,h:S.h,palette:S.palette}));restore(redo.pop())};
-addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click()}if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();$('redo').click()}
- const k={p:'pen',e:'erase',f:'fill',i:'pick',l:'line'}[e.key];if(k){tool=k;buildTools()}});
-// ---------- export ----------
-let exp={text:'',ext:'txt'};
-function idOf(){return ($('tid').value||'mytap').replace(/[^a-z0-9_]/gi,'')}
-function exportTap(){if(!S.tap)return '// switch on "tapestry mode" (grid multiple of 8) to export a tapestry entry';
- const art=[];for(let y=0;y<S.h;y++){let t='';for(let x=0;x<S.w;x++){if(x&&x%8===0)t+=' ';t+=S.cells[y*S.w+x]}art.push(t)}
- const used=[...new Set(S.cells.filter(c=>c!=='.'))].sort(),pal='{'+used.map(c=>c+":'"+S.palette[c]+"'").join(',')+'}',n=pieceCount(S),spl=[];for(let i=0;i<n;i++)spl.push(S.spools[i]||'');
- const diffs=Array.from({length:n},(_,i)=>S.diffs[i]??S.diff);
- return `  {id:'${idOf()}',name:'${S.name.replace(/'/g,"\\'")}',short:'${S.name.split(' ')[0].replace(/'/g,"")}',background:'${S.background}',palette:${pal},diff:${S.diff},diffs:[${diffs}],cfg:{},art:\`\n${art.join('\n')}\n\`,spools:\`\n${spl.join('\n')}\n\`}`}
-function exportMotif(){const rows=rowsOf(S).map(r=>"'"+r+"'").join(',');return `['${S.name.replace(/'/g,"\\'")}',[${rows}]]  // spools: ${S.spools[0]||'(not split)'}`}
-document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{const k=b.dataset.exp;if(k==='tap')exp={text:exportTap(),ext:'js'};else if(k==='motif')exp={text:exportMotif(),ext:'js'};else exp={text:JSON.stringify(S),ext:'json'};$('out').textContent=exp.text});
-$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(exp.text)}catch{const t=document.createElement('textarea');t.value=exp.text;document.body.append(t);t.select();document.execCommand('copy');t.remove()}$('copy').textContent='Copied';setTimeout(()=>$('copy').textContent='Copy',900)};
-$('dl').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([exp.text]));a.download=idOf()+'.'+exp.ext;a.click()};
-$('import').onclick=()=>$('jsonfile').click();
-$('jsonfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{S=Object.assign(blank(8,8),JSON.parse(await f.text()));hist=[];sel=0;$('name').value=S.name;refresh(true)}catch(err){alert('bad file: '+err.message)}};
-// ---------- picture import ----------
-let imgEl=null;
-$('img').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{imgEl=im;$('igo').disabled=false;if($('ikeep').checked){$('irows').value=Math.max(4,Math.round(+$('icols').value*im.height/im.width))}};im.src=URL.createObjectURL(f)};
-$('icols').oninput=()=>{if(imgEl&&$('ikeep').checked)$('irows').value=Math.max(4,Math.round(+$('icols').value*imgEl.height/imgEl.width))};
-const lumHex=h=>{const n=parseInt(h.slice(1),16);return .3*(n>>16)+.59*((n>>8)&255)+.11*(n&255)};
-function kmeans(px,k){let s=7;const rnd=()=>(s=(s*1664525+1013904223)>>>0)/4294967296;let cent=[px[rnd()*px.length|0].slice()];
- while(cent.length<k){const d=px.map(p=>Math.min(...cent.map(c=>(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2))),sum=d.reduce((a,b)=>a+b,0);if(!sum)break;let r=rnd()*sum,i=0;while(i<d.length-1&&(r-=d[i])>0)i++;cent.push(px[i].slice())}
- for(let it=0;it<12;it++){const acc=cent.map(()=>[0,0,0,0]);for(const p of px){let b=0,bd=1e18;cent.forEach((c,j)=>{const dd=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2;if(dd<bd){bd=dd;b=j}});const a=acc[b];a[0]+=p[0];a[1]+=p[1];a[2]+=p[2];a[3]++}cent=cent.map((c,j)=>acc[j][3]?[acc[j][0]/acc[j][3],acc[j][1]/acc[j][3],acc[j][2]/acc[j][3]]:c)}return cent}
-$('igo').onclick=()=>{if(!imgEl)return;snapshot();const W=Math.max(4,Math.min(64,+$('icols').value)),H=Math.max(4,Math.min(64,+$('irows').value)),K=Math.max(2,Math.min(11,+$('ik').value));
- const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(imgEl,0,0,W,H);const d=x.getImageData(0,0,W,H).data,px=[],alpha=[];
- for(let i=0;i<W*H;i++){px.push([d[i*4],d[i*4+1],d[i*4+2]]);alpha.push(d[i*4+3])}
- const cent=kmeans(px,K),idx=px.map(p=>{let b=0,bd=1e18;cent.forEach((q,j)=>{const dd=(p[0]-q[0])**2+(p[1]-q[1])**2+(p[2]-q[2])**2;if(dd<bd){bd=dd;b=j}});return b});
- const hex=q=>'#'+q.map(v=>Math.round(v).toString(16).padStart(2,'0')).join(''),count=cent.map((_,j)=>idx.filter(v=>v===j).length);
- let bg=-1;if($('ibg').checked)bg=count.indexOf(Math.max(...count));
- const order=cent.map((_,j)=>j).filter(j=>j!==bg&&count[j]>0).sort((a,b)=>lumHex(hex(cent[a]))-lumHex(hex(cent[b]))),letters=order.map((_,k)=>k===order.length-1?'C':LET[k]),map={},pal={...BASE};
- order.forEach((j,k)=>{map[j]=letters[k];pal[letters[k]]=hex(cent[j])});
- S=blank(W,H,S.name);S.palette=pal;S.background=bg>=0?hex(cent[bg]):'#f1e1c4';S.cells=idx.map((v,i)=>alpha[i]<80||v===bg?'.':map[v]);
- cleanSingles(S);$('gw').value=W;$('gh').value=H;sel=0;hist.length||0;refresh(true)};
-function cleanSingles(s){const box=s.tap?8:Math.max(s.w,s.h);for(let it=0;it<6;it++){let ch=0;for(let py=0;py<s.h;py+=box)for(let px=0;px<s.w;px+=box){const rows=rowsOf(s,px,py,Math.min(box,s.w-px),Math.min(box,s.h-py)),w=rows[0].length,h=rows.length;
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=rows[y][x];if(c==='.')continue;let same=0;const cnt={};for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=w||ny>=h)continue;const n=rows[ny][nx];if(n===c)same++;else if(n!=='.')cnt[n]=(cnt[n]||0)+1}
-   if(!same){const best=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];s.cells[(py+y)*s.w+px+x]=best||'.';ch++}}}if(!ch)break}}
-// ---------- start ----------
-buildSources();S=blank(8,8);buildTools();buildPalette();refresh(true);
-</script></body></html>
+/* =====================================================================
+   THREADSCAPE LEVEL STUDIO
+   ===================================================================== */
+
+const $ = id => document.getElementById(id);
+const L = Logic;
+const LETTERS = 'KNBTVGRPOYC';
+const BASE_PALETTE = {
+  R: '#E0534A', G: '#5AA05A', B: '#4A8FD6', Y: '#F2C230',
+  V: '#8A62C6', P: '#EC86AD', O: '#F08A3C', N: '#8B5A3C',
+  T: '#2FA89A', K: '#4A4A55', C: '#FFF8E7'
+};
+
+const COLOR_NAMES = {
+  vi: { R: 'Đỏ', G: 'Lá', B: 'Dương', Y: 'Vàng', V: 'Tím', P: 'Hồng', O: 'Cam', N: 'Nâu', T: 'Mòng két', K: 'Xám', C: 'Kem', '.': 'Vải nền' },
+  en: { R: 'Red', G: 'Green', B: 'Blue', Y: 'Yellow', V: 'Purple', P: 'Pink', O: 'Orange', N: 'Brown', T: 'Teal', K: 'Charcoal', C: 'Cream', '.': 'Fabric' }
+};
+
+// =====================================================================
+// BILINGUAL I18N DICTIONARY
+// =====================================================================
+const I18N = {
+  vi: {
+    appTitle: "Threadscape Studio",
+    badgeEditor: "Trình tạo Level",
+    loadBtn: "Nạp",
+    newBlankBtn: "Tạo mới",
+    resizeBtn: "Đổi cỡ",
+    undo: "Hoàn tác",
+    redo: "Làm lại",
+    toolPen: "Bút vẽ",
+    toolLine: "Đoạn thẳng",
+    toolFill: "Đổ màu",
+    toolErase: "Tẩy",
+    toolPick: "Hút màu",
+    toolClear: "Xóa hết",
+    optMirror: "Đối xứng trái-phải",
+    optFocusPiece: "🎯 Phóng to mảnh 8x8 đang chọn",
+    prevPiece: "Mảnh trước",
+    nextPiece: "Mảnh sau",
+    pieceNavHelp: "Bấm vào một ô bên dưới hoặc nhấn nút Trước/Sau để chuyển mảnh. Mỗi ô 8x8 là 1 màn chơi độc lập.",
+    tabSpools: "Cuộn chỉ",
+    tabSolution: "Lời giải",
+    tabHealth: "Kiểm tra",
+    tabExport: "Áp dụng & Xuất",
+    tabImport: "Nhập ảnh",
+    infoTitle: "Thông tin Level",
+    tapModeLabel: "Chế độ tranh Tapestry (Lưới gồm nhiều mảnh 8x8)",
+    tapModeHelp: "Bật để tạo tranh lớn ghép từ các mảnh 8x8. Tắt nếu chỉ muốn tạo 1 màn chơi nhỏ (Mini-level).",
+    diffCardTitle: "Phân chia cuộn chỉ (Spools) theo độ khó",
+    diffExplain: "Độ khó quyết định số bẫy (đường đi lừa khiến kẹt chỉ). Level càng khó, người chơi càng phải suy nghĩ kỹ thứ tự đi chỉ.",
+    minLen: "Dài tối thiểu",
+    maxSpools: "Max cuộn / mảnh",
+    seed: "Hạt giống (-1: ngẫu nhiên)",
+    splitPieceBtn: "Chia chỉ mảnh này",
+    splitAllBtn: "Chia TẤT CẢ các mảnh",
+    spoolsBreakdownTitle: "Danh sách cuộn chỉ tạo ra",
+    noSpoolsYet: "Chưa có cuộn chỉ. Hãy bấm \"Chia chỉ mảnh này\" ở trên.",
+    colorMatchTitle: "Kiểm tra khớp số ô thêu:",
+    colColor: "Màu",
+    colCells: "Số ô",
+    colSpools: "Cuộn chỉ",
+    colStatus: "Trạng thái",
+    advManualSpool: "Tự chỉnh chuỗi chỉ thủ công (B15 G8...)",
+    verifyManualSpools: "Xác nhận & Kiểm tra",
+    solutionTitle: "Xem cách giải (Solution)",
+    solutionDesc: "Hệ thống tự động tìm đường đi giải đố hợp lệ. Bạn có thể xem toàn bộ đường đi hoặc lọc riêng từng cuộn chỉ.",
+    showSolCheckbox: "Vẽ đường giải đố lên bàn cờ",
+    filterSpoolLabel: "Xem riêng từng cuộn chỉ:",
+    viewAllSpools: "Tất cả cuộn chỉ",
+    stepPlaybackTitle: "Mô phỏng thêu từng bước:",
+    solutionTips: "Mẹo: Mỗi cuộn chỉ có 1 hình tròn đánh số là điểm bắt đầu. Đường nối chỉ rõ đường đi của kim thêu. Chọn một cuộn chỉ ở trên để nhìn rõ hướng đi mà không bị rối mắt!",
+    healthTitle: "Kiểm tra tính hợp lệ của Level",
+    healthDesc: "Tự động quét và phát hiện các lỗi thiết kế trước khi đưa vào game.",
+    applyTitle: "🚀 Áp dụng trực tiếp vào Game",
+    applyHelp: "Ghi thẳng vào logic.js và index.html.",
+    applyServerBtn: "Ghi đè 1-Click (Không cần chọn file)",
+    pickFilesBtn: "Chọn logic.js & index.html",
+    applyNowBtn: "Ghi đè thủ công",
+    exportCodeTitle: "Sao chép mã nguồn thủ công",
+    expTapBtn: "Tapestry entry (logic.js)",
+    expMotifBtn: "Mini-level row",
+    importJsonBtn: "Nhập JSON",
+    copyBtn: "Sao chép",
+    downloadBtn: "Tải file",
+    importPicTitle: "Chuyển ảnh thành Level thêu",
+    importPicDesc: "Tải ảnh lên (pixel art, logo, tranh hoạt hình...), hệ thống sẽ thu nhỏ và giảm màu thành bảng thêu.",
+    imgCols: "Số cột (W)",
+    imgRows: "Số hàng (H)",
+    imgColors: "Số màu",
+    imgAutoBg: "Màu phổ biến nhất làm màu vải nền (không cần thêu)",
+    imgKeepAspect: "Giữ nguyên tỉ lệ ảnh",
+    generateGridBtn: "Tạo lưới từ ảnh",
+    diffNames: ['', 'Rất dễ (Easy)', 'Nhẹ nhàng (Gentle)', 'Vừa phải (Medium)', 'Khó (Hard)', 'Cực khó (Brutal)'],
+    matchOk: "Khớp ✓",
+    matchDeficit: "Thiếu",
+    matchSurplus: "Thừa",
+    emptyPiece: "Trống"
+  },
+  en: {
+    appTitle: "Threadscape Studio",
+    badgeEditor: "Level Editor",
+    loadBtn: "Load",
+    newBlankBtn: "New Blank",
+    resizeBtn: "Resize",
+    undo: "Undo",
+    redo: "Redo",
+    toolPen: "Pen",
+    toolLine: "Line",
+    toolFill: "Fill",
+    toolErase: "Eraser",
+    toolPick: "Eyedropper",
+    toolClear: "Clear",
+    optMirror: "Mirror left-right",
+    optFocusPiece: "🎯 Focus selected 8x8 piece",
+    prevPiece: "Prev piece",
+    nextPiece: "Next piece",
+    pieceNavHelp: "Click a box below or use Prev/Next to switch pieces. Each 8x8 box is an independent puzzle.",
+    tabSpools: "Spools",
+    tabSolution: "Solution",
+    tabHealth: "Health Check",
+    tabExport: "Apply & Export",
+    tabImport: "Import Image",
+    infoTitle: "Level Info",
+    tapModeLabel: "Tapestry Mode (Grid of 8x8 pieces)",
+    tapModeHelp: "Turn on for big pictures made of 8x8 pieces. Turn off for a single small level (Mini-level).",
+    diffCardTitle: "Split spools by difficulty",
+    diffExplain: "Difficulty determines trap rate (deceptive paths causing thread deadlocks). Higher difficulty requires more careful planning.",
+    minLen: "Min length",
+    maxSpools: "Max spools / piece",
+    seed: "Random seed (-1: random)",
+    splitPieceBtn: "Split this piece",
+    splitAllBtn: "Split ALL pieces",
+    spoolsBreakdownTitle: "Generated Thread Spools",
+    noSpoolsYet: "No spools generated yet. Click \"Split this piece\" above.",
+    colorMatchTitle: "Stitch count match check:",
+    colColor: "Color",
+    colCells: "Cells",
+    colSpools: "Spools",
+    colStatus: "Status",
+    advManualSpool: "Edit raw spool string (B15 G8...)",
+    verifyManualSpools: "Apply & Verify",
+    solutionTitle: "Solution Playback",
+    solutionDesc: "The solver automatically finds a valid stitching path. You can inspect all paths or filter by single spool.",
+    showSolCheckbox: "Draw solution paths on board",
+    filterSpoolLabel: "Filter by spool:",
+    viewAllSpools: "All spools",
+    stepPlaybackTitle: "Step-by-step stitch simulation:",
+    solutionTips: "Tip: Each spool has a numbered circle marking its start point. Lines show thread flow. Select a single spool above for a clear view!",
+    healthTitle: "Level Validation Check",
+    healthDesc: "Automatically scans and catches design flaws before applying to game.",
+    applyTitle: "🚀 Apply Directly to Game",
+    applyHelp: "Writes directly to logic.js and index.html.",
+    applyServerBtn: "1-Click Direct Apply (No file dialog)",
+    pickFilesBtn: "Select logic.js & index.html",
+    applyNowBtn: "Apply Manually",
+    exportCodeTitle: "Manual Code Export",
+    expTapBtn: "Tapestry entry (logic.js)",
+    expMotifBtn: "Mini-level row",
+    importJsonBtn: "Import JSON",
+    copyBtn: "Copy",
+    downloadBtn: "Download",
+    importPicTitle: "Convert Image to Level",
+    importPicDesc: "Upload an image (pixel art, logo, cartoon...), resized and color-quantized to stitch grid.",
+    imgCols: "Columns (W)",
+    imgRows: "Rows (H)",
+    imgColors: "Colors",
+    imgAutoBg: "Most common color = bare fabric (unstitched)",
+    imgKeepAspect: "Keep aspect ratio",
+    generateGridBtn: "Generate Grid from Image",
+    diffNames: ['', 'Easy', 'Gentle', 'Medium', 'Hard', 'Brutal'],
+    matchOk: "Match ✓",
+    matchDeficit: "Short",
+    matchSurplus: "Over",
+    emptyPiece: "Empty"
+  }
+};
+
+let currentLang = localStorage.getItem('threadscape_lang') || 'vi';
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('threadscape_lang', lang);
+  $('langVi').classList.toggle('active', lang === 'vi');
+  $('langEn').classList.toggle('active', lang === 'en');
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.dataset.i18n;
+    if (I18N[lang][k]) el.textContent = I18N[lang][k];
+  });
+  refreshUI();
+}
+
+// =====================================================================
+// STATE MANAGEMENT
+// =====================================================================
+let S = null;
+let curColor = 'R';
+let currentTool = 'pen';
+let selectedPiece = 0;
+let historyStack = [];
+let redoStack = [];
+let isDragging = false;
+let solCache = null;
+let lineStartPos = null;
+let activeSpoolHighlight = -1;
+
+// Step-by-step playback state
+let playbackTimer = null;
+let playbackStep = 0;
+let flattenedSolutionSteps = [];
+
+function createBlankState(w = 24, h = 24, name = 'My Tapestry') {
+  const isTap = (w % 8 === 0 && h % 8 === 0 && w >= 8 && h >= 8);
+  return {
+    name,
+    tid: name.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 15) || 'mytap',
+    w, h,
+    cells: Array(w * h).fill('.'),
+    palette: { ...BASE_PALETTE },
+    background: '#f1e1c4',
+    tap: isTap,
+    diff: 3,
+    diffs: [],
+    spools: {},
+    baked: {}
+  };
+}
+
+const pieceCount = s => s.tap ? (s.w / 8) * (s.h / 8) : 1;
+const pieceCols = s => s.tap ? (s.w / 8) : 1;
+const pieceRowsCount = s => s.tap ? (s.h / 8) : 1;
+
+function pieceBox(s, idx) {
+  if (!s.tap) return { x: 0, y: 0, w: s.w, h: s.h };
+  const cols = pieceCols(s);
+  const px = (idx % cols) * 8;
+  const py = Math.floor(idx / cols) * 8;
+  return { x: px, y: py, w: 8, h: 8 };
+}
+
+function pieceRows(s, idx) {
+  const b = pieceBox(s, idx);
+  const rows = [];
+  for (let y = b.y; y < b.y + b.h; y++) {
+    let row = '';
+    for (let x = b.x; x < b.x + b.w; x++) {
+      row += s.cells[y * s.w + x];
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+function snapshot() {
+  historyStack.push(JSON.stringify({
+    cells: S.cells, w: S.w, h: S.h, palette: S.palette, background: S.background, spools: S.spools
+  }));
+  if (historyStack.length > 100) historyStack.shift();
+  redoStack = [];
+}
+
+function undo() {
+  if (!historyStack.length) return;
+  redoStack.push(JSON.stringify({
+    cells: S.cells, w: S.w, h: S.h, palette: S.palette, background: S.background, spools: S.spools
+  }));
+  const prev = JSON.parse(historyStack.pop());
+  Object.assign(S, prev);
+  solCache = null;
+  refreshUI();
+}
+
+function redo() {
+  if (!redoStack.length) return;
+  historyStack.push(JSON.stringify({
+    cells: S.cells, w: S.w, h: S.h, palette: S.palette, background: S.background, spools: S.spools
+  }));
+  const next = JSON.parse(redoStack.pop());
+  Object.assign(S, next);
+  solCache = null;
+  refreshUI();
+}
+
+function saveDraft() {
+  try { localStorage.setItem('stitchEditor_v2', JSON.stringify(S)); } catch (e) {}
+}
+
+// =====================================================================
+// CANVAS RENDERING & DRAWING
+// =====================================================================
+const cv = $('cv');
+const ctx = cv.getContext('2d');
+let cellSize = 26;
+
+function drawCanvas() {
+  cellSize = +$('zoom').value;
+  const isFocus = $('focusMode').checked && S.tap;
+  const b = pieceBox(S, selectedPiece);
+
+  if (isFocus) {
+    cv.width = 8 * cellSize;
+    cv.height = 8 * cellSize;
+  } else {
+    cv.width = S.w * cellSize;
+    cv.height = S.h * cellSize;
+  }
+
+  // Draw background fabric
+  ctx.fillStyle = S.background;
+  ctx.fillRect(0, 0, cv.width, cv.height);
+
+  // Draw cells
+  const startX = isFocus ? b.x : 0;
+  const startY = isFocus ? b.y : 0;
+  const endX = isFocus ? (b.x + 8) : S.w;
+  const endY = isFocus ? (b.y + 8) : S.h;
+
+  for (let y = startY; y < endY; y++) {
+    for (let x = startX; x < endX; x++) {
+      const c = S.cells[y * S.w + x];
+      if (c === '.') continue;
+      const screenX = (x - startX) * cellSize;
+      const screenY = (y - startY) * cellSize;
+      ctx.fillStyle = S.palette[c] || '#f0f';
+      ctx.fillRect(screenX, screenY, cellSize, cellSize);
+    }
+  }
+
+  // Draw pixel grid lines
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const maxW = isFocus ? 8 : S.w;
+  const maxH = isFocus ? 8 : S.h;
+  for (let x = 0; x <= maxW; x++) {
+    ctx.moveTo(x * cellSize + 0.5, 0);
+    ctx.lineTo(x * cellSize + 0.5, maxH * cellSize);
+  }
+  for (let y = 0; y <= maxH; y++) {
+    ctx.moveTo(0, y * cellSize + 0.5);
+    ctx.lineTo(maxW * cellSize, y * cellSize + 0.5);
+  }
+  ctx.stroke();
+
+  // Tapestry piece borders (if not focus mode)
+  if (S.tap && !isFocus) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = 0; x <= S.w; x += 8) {
+      ctx.moveTo(x * cellSize, 0);
+      ctx.lineTo(x * cellSize, S.h * cellSize);
+    }
+    for (let y = 0; y <= S.h; y += 8) {
+      ctx.moveTo(0, y * cellSize);
+      ctx.lineTo(S.w * cellSize, y * cellSize);
+    }
+    ctx.stroke();
+
+    // Highlight active selected piece
+    ctx.strokeStyle = '#ffd34d';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(b.x * cellSize + 1.5, b.y * cellSize + 1.5, b.w * cellSize - 3, b.h * cellSize - 3);
+  }
+
+  // Draw solution paths if enabled
+  if ($('showSolutionToggle').checked) {
+    drawSolutionPaths(isFocus, b);
+  }
+
+  // Update HUD
+  const cols = pieceCols(S);
+  const curRow = Math.floor(selectedPiece / cols) + 1;
+  const curCol = (selectedPiece % cols) + 1;
+  $('hudInfo').textContent = `${S.w}x${S.h} &middot; ${S.tap ? `Mảnh ${selectedPiece + 1}/${pieceCount(S)} (R${curRow}, C${curCol})` : 'Single level'}`;
+}
+
+function getSolutionForPiece(idx) {
+  const t = S.spools[idx];
+  if (!t || !t.trim()) return null;
+  const rows = pieceRows(S, idx);
+  const cacheKey = idx + '|' + t + '|' + rows.join('');
+  if (solCache && solCache.key === cacheKey) return solCache.data;
+
+  let sol = null;
+  try {
+    const lv = L.levelFromBaked(0, 'x', rows, t);
+    sol = lv.solution;
+  } catch (e) {}
+  solCache = { key: cacheKey, data: sol };
+  return sol;
+}
+
+function drawSolutionPaths(isFocus, b) {
+  const sol = getSolutionForPiece(selectedPiece);
+  if (!sol || !sol.length) return;
+
+  const offsetX = isFocus ? 0 : b.x;
+  const offsetY = isFocus ? 0 : b.y;
+
+  sol.forEach((spoolSol, spoolIdx) => {
+    if (activeSpoolHighlight >= 0 && activeSpoolHighlight !== spoolIdx) return;
+
+    const { color, path } = spoolSol;
+    if (!path || !path.length) return;
+
+    const isFiltered = (activeSpoolHighlight === spoolIdx);
+    ctx.lineWidth = isFiltered ? Math.max(3, cellSize * 0.22) : Math.max(2, cellSize * 0.14);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    // Path stroke
+    ctx.strokeStyle = isFiltered ? '#fff' : 'rgba(0, 0, 0, 0.85)';
+    ctx.beginPath();
+    path.forEach((cellIdx, step) => {
+      const px = cellIdx % 8;
+      const py = Math.floor(cellIdx / 8);
+      const cx = (offsetX + px + 0.5) * cellSize;
+      const cy = (offsetY + py + 0.5) * cellSize;
+      if (step === 0) ctx.moveTo(cx, cy);
+      else ctx.lineTo(cx, cy);
+    });
+    ctx.stroke();
+
+    // Start point bubble (Numbered circle)
+    const startIdx = path[0];
+    const sx = (offsetX + (startIdx % 8) + 0.5) * cellSize;
+    const sy = (offsetY + Math.floor(startIdx / 8) + 0.5) * cellSize;
+
+    ctx.beginPath();
+    ctx.arc(sx, sy, cellSize * 0.32, 0, Math.PI * 2);
+    ctx.fillStyle = isFiltered ? '#ffd34d' : '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#000';
+    ctx.font = `bold ${Math.round(cellSize * 0.35)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(spoolIdx + 1, sx, sy);
+
+    // If filtered, draw step numbers along path
+    if (isFiltered && path.length > 1) {
+      ctx.font = `bold ${Math.round(cellSize * 0.26)}px sans-serif`;
+      for (let i = 1; i < path.length; i++) {
+        const cIdx = path[i];
+        const stepX = (offsetX + (cIdx % 8) + 0.5) * cellSize;
+        const stepY = (offsetY + Math.floor(cIdx / 8) + 0.5) * cellSize;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(stepX - 8, stepY - 6, 16, 12);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(i + 1, stepX, stepY);
+      }
+    }
+  });
+
+  // Animated Playback Needle Indicator
+  if (playbackStep > 0 && flattenedSolutionSteps.length >= playbackStep) {
+    const stepObj = flattenedSolutionSteps[playbackStep - 1];
+    const px = (offsetX + (stepObj.cell % 8) + 0.5) * cellSize;
+    const py = (offsetY + Math.floor(stepObj.cell / 8) + 0.5) * cellSize;
+
+    ctx.beginPath();
+    ctx.arc(px, py, cellSize * 0.45, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 211, 77, 0.45)';
+    ctx.fill();
+    ctx.strokeStyle = '#ffd34d';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+}
+
+// Coordinate mapping
+function getCanvasPos(e) {
+  const r = cv.getBoundingClientRect();
+  const rawX = Math.floor((e.clientX - r.left) / cellSize);
+  const rawY = Math.floor((e.clientY - r.top) / cellSize);
+
+  const isFocus = $('focusMode').checked && S.tap;
+  const b = pieceBox(S, selectedPiece);
+
+  const x = isFocus ? (b.x + rawX) : rawX;
+  const y = isFocus ? (b.y + rawY) : rawY;
+
+  if (x >= 0 && y >= 0 && x < S.w && y < S.h) {
+    return [x, y];
+  }
+  return null;
+}
+
+function setCell(x, y, color) {
+  S.cells[y * S.w + x] = color;
+  if ($('mirror').checked) {
+    S.cells[y * S.w + (S.w - 1 - x)] = color;
+  }
+}
+
+function floodFill(x, y, targetColor) {
+  const original = S.cells[y * S.w + x];
+  if (original === targetColor) return;
+  const queue = [[x, y]];
+  while (queue.length) {
+    const [cx, cy] = queue.pop();
+    if (cx < 0 || cy < 0 || cx >= S.w || cy >= S.h) continue;
+    if (S.cells[cy * S.w + cx] !== original) continue;
+    setCell(cx, cy, targetColor);
+    queue.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+  }
+}
+
+// Canvas Mouse / Pointer Events
+cv.addEventListener('pointerdown', e => {
+  const pos = getCanvasPos(e);
+  if (!pos) return;
+  cv.setPointerCapture(e.pointerId);
+
+  // Eyedropper on right click or pick tool
+  if (e.button === 2 || currentTool === 'pick') {
+    const picked = S.cells[pos[1] * S.w + pos[0]];
+    curColor = picked;
+    if (currentTool === 'pick') setTool('pen');
+    renderPalette();
+    return;
+  }
+
+  snapshot();
+  const drawColor = (currentTool === 'erase') ? '.' : curColor;
+
+  if (currentTool === 'fill') {
+    floodFill(pos[0], pos[1], drawColor);
+    refreshUI();
+    return;
+  }
+
+  if (currentTool === 'line') {
+    lineStartPos = pos;
+    return;
+  }
+
+  isDragging = true;
+  setCell(pos[0], pos[1], drawColor);
+  drawCanvas();
+});
+
+cv.addEventListener('pointermove', e => {
+  if (!isDragging) return;
+  const pos = getCanvasPos(e);
+  if (!pos) return;
+  setCell(pos[0], pos[1], (currentTool === 'erase') ? '.' : curColor);
+  drawCanvas();
+});
+
+cv.addEventListener('pointerup', e => {
+  if (lineStartPos) {
+    const pos = getCanvasPos(e) || lineStartPos;
+    const [x0, y0] = lineStartPos;
+    const [x1, y1] = pos;
+    const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+    for (let i = 0; i <= steps; i++) {
+      const lx = Math.round(x0 + (x1 - x0) * (i / steps));
+      const ly = Math.round(y0 + (y1 - y0) * (i / steps));
+      setCell(lx, ly, (currentTool === 'erase') ? '.' : curColor);
+    }
+    lineStartPos = null;
+    refreshUI();
+  }
+  if (isDragging) {
+    isDragging = false;
+    refreshUI();
+  }
+});
+
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+cv.addEventListener('dblclick', e => {
+  if (!S.tap) return;
+  const pos = getCanvasPos(e);
+  if (!pos) return;
+  const pieceX = Math.floor(pos[0] / 8);
+  const pieceY = Math.floor(pos[1] / 8);
+  const target = pieceY * pieceCols(S) + pieceX;
+  if (target >= 0 && target < pieceCount(S)) {
+    selectPiece(target);
+  }
+});
+
+// =====================================================================
+// TOOLBAR & PALETTE
+// =====================================================================
+function setTool(toolName) {
+  currentTool = toolName;
+  document.querySelectorAll('#toolsGroup button[data-tool]').forEach(b => {
+    b.classList.toggle('on', b.dataset.tool === toolName);
+  });
+}
+
+$('toolsGroup').onclick = e => {
+  const btn = e.target.closest('[data-tool]');
+  if (btn) setTool(btn.dataset.tool);
+};
+
+$('clearBtn').onclick = () => {
+  if (!confirm('Xóa sạch màu toàn bộ lưới thành vải trống?')) return;
+  snapshot();
+  S.cells.fill('.');
+  refreshUI();
+};
+
+function renderPalette() {
+  const container = $('paletteRow');
+  const swatches = Object.keys(BASE_PALETTE).map(letter => {
+    const hex = S.palette[letter] || BASE_PALETTE[letter];
+    const isSelected = (curColor === letter);
+    const colorName = COLOR_NAMES[currentLang][letter] || letter;
+    return `
+      <div class="sw ${isSelected ? 'on' : ''}" data-color="${letter}" style="background:${hex};" title="${letter} (${colorName}) - Click để chọn, nháy đúp để đổi màu">
+        <span>${letter}</span>
+      </div>`;
+  }).join('');
+
+  const isFabricSelected = (curColor === '.');
+  const fabricHtml = `
+    <div class="sw fabric ${isFabricSelected ? 'on' : ''}" data-color="." style="background:${S.background};" title="Vải nền bare fabric (.)">
+      <span>.</span>
+    </div>
+  `;
+
+  container.innerHTML = swatches + fabricHtml;
+
+  container.onclick = e => {
+    const sw = e.target.closest('.sw');
+    if (!sw) return;
+    curColor = sw.dataset.color;
+    renderPalette();
+  };
+
+  container.ondblclick = e => {
+    const sw = e.target.closest('.sw');
+    if (!sw) return;
+    const color = sw.dataset.color;
+    const picker = $('nativeColorPicker');
+    picker.value = (color === '.') ? S.background : (S.palette[color] || '#ffffff');
+    picker.oninput = () => {
+      if (color === '.') S.background = picker.value;
+      else S.palette[color] = picker.value;
+      renderPalette();
+      drawCanvas();
+      saveDraft();
+    };
+    picker.click();
+  };
+}
+
+// =====================================================================
+// TAPESTRY PIECE NAVIGATION
+// =====================================================================
+function selectPiece(idx) {
+  const maxPieces = pieceCount(S);
+  if (idx < 0) idx = 0;
+  if (idx >= maxPieces) idx = maxPieces - 1;
+  selectedPiece = idx;
+  solCache = null;
+  activeSpoolHighlight = -1;
+  stopPlayback();
+
+  $('diffRange').value = S.diffs[selectedPiece] ?? S.diff;
+  refreshUI();
+}
+
+function renderPieceNavigator() {
+  const card = $('pieceNavCard');
+  if (!S.tap) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'flex';
+
+  const total = pieceCount(S);
+  const cols = pieceCols(S);
+  const curRow = Math.floor(selectedPiece / cols) + 1;
+  const curCol = (selectedPiece % cols) + 1;
+
+  $('pieceTitleText').textContent = (currentLang === 'vi')
+    ? `Mảnh ${selectedPiece + 1} / ${total} (Hàng ${curRow}, Cột ${curCol})`
+    : `Piece ${selectedPiece + 1} / ${total} (Row ${curRow}, Col ${curCol})`;
+
+  const spools = S.spools[selectedPiece];
+  const maxTarget = +$('maxSpoolsInput').value || 8;
+  const badge = $('pieceStatusBadge');
+  const spoolArr = (spools || '').trim().split(/\s+/).filter(Boolean);
+
+  if (spoolArr.length > 0) {
+    if (spoolArr.length > maxTarget) {
+      badge.className = 'badge warn';
+      badge.textContent = (currentLang === 'vi') ? `⚠️ ${spoolArr.length} cuộn (> ${maxTarget})` : `⚠️ ${spoolArr.length} spools (> ${maxTarget})`;
+    } else {
+      badge.className = 'badge ok';
+      badge.textContent = (currentLang === 'vi') ? `✓ ${spoolArr.length} cuộn (Đạt)` : `✓ ${spoolArr.length} spools (OK)`;
+    }
+  } else {
+    badge.className = 'badge bad';
+    badge.textContent = (currentLang === 'vi') ? '⚠️ Chưa chia chỉ' : '⚠️ No spools';
+  }
+
+  // 2D Grid
+  const grid = $('pieceGridContainer');
+  let gridHtml = '';
+  for (let i = 0; i < total; i++) {
+    const sArr = (S.spools[i] || '').trim().split(/\s+/).filter(Boolean);
+    const isAct = (i === selectedPiece);
+    const pieceNum = i + 1;
+    let dotClass = 'bad';
+    if (sArr.length > 0) {
+      dotClass = (sArr.length > maxTarget) ? 'warn' : 'ready';
+    }
+    gridHtml += `
+      <div class="piece-tile ${isAct ? 'active' : ''} ${dotClass}" data-piece="${i}" title="Mảnh #${pieceNum}: ${sArr.length} cuộn">
+        <span>${pieceNum}</span>
+        <div class="dot"></div>
+      </div>
+    `;
+  }
+  grid.innerHTML = gridHtml;
+
+  grid.onclick = e => {
+    const tile = e.target.closest('[data-piece]');
+    if (tile) selectPiece(+tile.dataset.piece);
+  };
+}
+
+$('prevPieceBtn').onclick = () => selectPiece(selectedPiece - 1);
+$('nextPieceBtn').onclick = () => selectPiece(selectedPiece + 1);
+
+// =====================================================================
+// TOPOLOGY ANALYSIS & EXPLANATION
+// =====================================================================
+function analyzePieceComplexity(rows) {
+  const h = rows.length, w = rows[0].length;
+  const colorComps = {};
+  const seen = new Set();
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const c = rows[y][x];
+      if (c === '.' || seen.has(y * w + x)) continue;
+      const q = [[x, y]];
+      seen.add(y * w + x);
+      let count = 0;
+      for (let k = 0; k < q.length; k++) {
+        const [cx, cy] = q[k];
+        count++;
+        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+          const nx = cx + dx, ny = cy + dy;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          if (seen.has(ny * w + nx) || rows[ny][nx] !== c) continue;
+          seen.add(ny * w + nx);
+          q.push([nx, ny]);
+        }
+      }
+      (colorComps[c] = colorComps[c] || []).push(count);
+    }
+  }
+
+  const colorCount = Object.keys(colorComps).length;
+  let totalDisconnectedRegions = 0;
+  const fragmentedColors = [];
+
+  for (const [c, sizes] of Object.entries(colorComps)) {
+    totalDisconnectedRegions += sizes.length;
+    if (sizes.length > 1) {
+      const cName = COLOR_NAMES[currentLang][c] || c;
+      fragmentedColors.push(`<b>${c} (${cName})</b> có ${sizes.length} cụm`);
+    }
+  }
+
+  return { colorCount, totalDisconnectedRegions, colorComps, fragmentedColors };
+}
+
+function updateConflictNotice() {
+  const box = $('conflictBox');
+  const title = $('conflictTitle');
+  const body = $('conflictBody');
+  const targetMax = +$('maxSpoolsInput').value || 8;
+  const spools = (S.spools[selectedPiece] || '').trim().split(/\s+/).filter(Boolean);
+
+  if (!spools.length || spools.length <= targetMax) {
+    box.className = 'conflict-box';
+    box.style.display = 'none';
+    return;
+  }
+
+  const rows = pieceRows(S, selectedPiece);
+  const { colorCount, totalDisconnectedRegions, fragmentedColors } = analyzePieceComplexity(rows);
+
+  box.className = 'conflict-box show';
+  box.style.display = 'block';
+
+  title.textContent = (currentLang === 'vi')
+    ? `⚠️ Mảnh #${selectedPiece + 1} chia thành ${spools.length} cuộn (Vượt mục tiêu Max = ${targetMax})`
+    : `⚠️ Piece #${selectedPiece + 1} produced ${spools.length} spools (Exceeds target Max = ${targetMax})`;
+
+  let explanations = [];
+
+  if (totalDisconnectedRegions > targetMax) {
+    if (currentLang === 'vi') {
+      explanations.push(`
+        <li><b>Bị đứt đoạn thành ${totalDisconnectedRegions} cụm màu rời rạc:</b> 
+        Kim thêu bắt buộc phải đi liên tục, không thể nhảy qua khoảng trống. Do đó, mỗi cụm màu rời bắt buộc phải có ít nhất 1 cuộn riêng.
+        <br>Về mặt toán học, mảnh này <b>không thể giảm xuống dưới ${totalDisconnectedRegions} cuộn</b> trừ khi bạn vẽ nối các cụm này lại!
+        ${fragmentedColors.length ? `<br><i>(Cụm rời: ${fragmentedColors.join(', ')})</i>` : ''}
+        </li>
+      `);
+    } else {
+      explanations.push(`
+        <li><b>Fragmented into ${totalDisconnectedRegions} disconnected regions:</b>
+        Threads cannot jump across gaps. Each disconnected island requires at least 1 spool.
+        Mathematically, it <b>cannot be reduced below ${totalDisconnectedRegions} spools</b> unless you connect these regions!
+        </li>
+      `);
+    }
+  } else if (colorCount > targetMax) {
+    if (currentLang === 'vi') {
+      explanations.push(`
+        <li><b>Quá nhiều màu trong 1 mảnh:</b> Mảnh này dùng tới ${colorCount} màu khác nhau. Mỗi màu cần ít nhất 1 cuộn nên không thể $\le ${targetMax}$.</li>
+      `);
+    } else {
+      explanations.push(`
+        <li><b>Too many colors:</b> Piece uses ${colorCount} colors. Each color requires at least 1 spool.</li>
+      `);
+    }
+  } else {
+    if (currentLang === 'vi') {
+      explanations.push(`
+        <li><b>Khối màu có hình dáng phân nhánh phức tạp (ngã 3, chữ thập...):</b>
+        Một sợi chỉ đơn không thể đi hết khối màu này trong 1 nét vẽ liên tục mà không tự chặn đường của chính nó. 
+        Thuật toán buộc phải tách thêm cuộn để đảm bảo level có thể giải được.</li>
+      `);
+    } else {
+      explanations.push(`
+        <li><b>Branched/Cross shape deadlock:</b>
+        The shape has branches or junctions where a single thread cannot cover all cells without deadlocking. Extra spools were required to guarantee a valid solution.</li>
+      `);
+    }
+  }
+
+  if (currentLang === 'vi') {
+    explanations.push(`
+      <li style="color:var(--ok);margin-top:6px;"><b>💡 Cách khắc phục:</b>
+      1) Nối các khối cùng màu lại thành mảng liền khối. 
+      2) Tăng ô <i>Dài tối thiểu</i> lên 2 hoặc 3.
+      3) Thử bấm nút 🎲 để thử hạt giống ngẫu nhiên khác.</li>
+    `);
+  } else {
+    explanations.push(`
+      <li style="color:var(--ok);margin-top:6px;"><b>💡 How to fix:</b>
+      1) Connect same-colored islands together into contiguous blobs.
+      2) Increase <i>Min length</i> to 2 or 3.
+      3) Click 🎲 to try another random seed.</li>
+    `);
+  }
+
+  body.innerHTML = `<ul>${explanations.join('')}</ul>`;
+}
+
+// =====================================================================
+// SPOOL BREAKDOWN & MATCH CHECKING
+// =====================================================================
+function renderSpoolBreakdown() {
+  const spoolStr = (S.spools[selectedPiece] || '').trim();
+  const listContainer = $('spoolChipsList');
+  const countInfo = $('spoolCountInfo');
+  const filterSelect = $('solutionSpoolFilter');
+  const targetMax = +$('maxSpoolsInput').value || 8;
+
+  if (!spoolStr) {
+    listContainer.innerHTML = `<span style="color:var(--dim);font-size:11px;">${I18N[currentLang].noSpoolsYet}</span>`;
+    countInfo.textContent = `0 ${currentLang === 'vi' ? 'cuộn' : 'spools'} (Max ${targetMax})`;
+    filterSelect.innerHTML = `<option value="-1">${I18N[currentLang].viewAllSpools}</option>`;
+    $('rawSpoolText').value = '';
+    renderColorStatTable({});
+    updateConflictNotice();
+    return;
+  }
+
+  $('rawSpoolText').value = spoolStr;
+  const spools = spoolStr.split(/\s+/).filter(Boolean);
+  
+  if (spools.length > targetMax) {
+    countInfo.innerHTML = `<span style="color:var(--warn);font-weight:700;">${spools.length} cuộn (Vượt Max ${targetMax})</span>`;
+  } else {
+    countInfo.innerHTML = `<span style="color:var(--ok);font-weight:700;">${spools.length} cuộn (Đạt Max ${targetMax})</span>`;
+  }
+
+  let chipsHtml = '';
+  let filterOptions = `<option value="-1">${I18N[currentLang].viewAllSpools}</option>`;
+
+  spools.forEach((s, idx) => {
+    const colorChar = s[0];
+    const len = s.slice(1);
+    const bg = S.palette[colorChar] || '#888';
+    const isHigh = (activeSpoolHighlight === idx);
+    const colorName = COLOR_NAMES[currentLang][colorChar] || colorChar;
+
+    chipsHtml += `
+      <div class="spool-chip ${isHigh ? 'highlighted' : ''}" data-spool-idx="${idx}" style="background:${bg};">
+        <span>#${idx + 1}</span>
+        <span>${colorChar}${len}</span>
+      </div>
+    `;
+
+    filterOptions += `<option value="${idx}" ${activeSpoolHighlight === idx ? 'selected' : ''}>#${idx + 1} - ${colorName} (${colorChar}) dài ${len} ô</option>`;
+  });
+
+  listContainer.innerHTML = chipsHtml;
+  filterSelect.innerHTML = filterOptions;
+
+  listContainer.onclick = e => {
+    const chip = e.target.closest('[data-spool-idx]');
+    if (!chip) return;
+    const idx = +chip.dataset.spoolIdx;
+    activeSpoolHighlight = (activeSpoolHighlight === idx) ? -1 : idx;
+    filterSelect.value = activeSpoolHighlight;
+    renderSpoolBreakdown();
+    drawCanvas();
+  };
+
+  filterSelect.onchange = () => {
+    activeSpoolHighlight = +filterSelect.value;
+    renderSpoolBreakdown();
+    drawCanvas();
+  };
+
+  const spoolCounts = {};
+  spools.forEach(s => {
+    const c = s[0];
+    const l = +s.slice(1);
+    spoolCounts[c] = (spoolCounts[c] || 0) + l;
+  });
+
+  renderColorStatTable(spoolCounts);
+  updateConflictNotice();
+}
+
+function renderColorStatTable(spoolCounts) {
+  const tbody = $('colorStatBody');
+  const rows = pieceRows(S, selectedPiece);
+  const cellCounts = {};
+
+  rows.forEach(r => {
+    for (const c of r) {
+      if (c !== '.') cellCounts[c] = (cellCounts[c] || 0) + 1;
+    }
+  });
+
+  const allColors = Array.from(new Set([...Object.keys(cellCounts), ...Object.keys(spoolCounts)])).sort();
+  if (!allColors.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--dim);text-align:center;">${I18N[currentLang].emptyPiece}</td></tr>`;
+    return;
+  }
+
+  let tableHtml = '';
+  allColors.forEach(c => {
+    const boardCells = cellCounts[c] || 0;
+    const threadCells = spoolCounts[c] || 0;
+    const bg = S.palette[c] || '#888';
+    const colorName = COLOR_NAMES[currentLang][c] || c;
+
+    let statusBadge = '';
+    if (boardCells === threadCells) {
+      statusBadge = `<span class="badge ok">${I18N[currentLang].matchOk}</span>`;
+    } else if (boardCells > threadCells) {
+      statusBadge = `<span class="badge bad">${I18N[currentLang].matchDeficit} (-${boardCells - threadCells})</span>`;
+    } else {
+      statusBadge = `<span class="badge warn">${I18N[currentLang].matchSurplus} (+${threadCells - boardCells})</span>`;
+    }
+
+    tableHtml += `
+      <tr>
+        <td>
+          <span style="display:inline-flex;align-items:center;gap:4px;">
+            <span style="width:10px;height:10px;border-radius:2px;background:${bg};display:inline-block;"></span>
+            <b>${c}</b> (${colorName})
+          </span>
+        </td>
+        <td>${boardCells}</td>
+        <td>${threadCells}</td>
+        <td>${statusBadge}</td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = tableHtml;
+}
+
+// Hook up Manual Spool Text Apply
+$('applyRawSpoolsBtn').onclick = () => {
+  try {
+    const text = $('rawSpoolText').value.trim();
+    if (!text) throw new Error(currentLang === 'vi' ? 'Vui lòng nhập chuỗi cuộn chỉ (ví dụ: B15 B11 T8 C2 C2)' : 'Please enter spool string (e.g. B15 B11 T8 C2 C2)');
+    const rows = pieceRows(S, selectedPiece);
+    const lv = L.levelFromBaked(0, S.name, rows, text);
+    let rej = 0, att = 0;
+    const rng = L.mulberry32(5);
+    for (const c of new Set(lv.spools.map(s => s.color))) {
+      const [r, a] = L.trapCount(lv, c, lv.spools.filter(s => s.color === c).map(s => s.length), rng, 10);
+      rej += r; att += a;
+    }
+    snapshot();
+    S.spools[selectedPiece] = text;
+    S.baked[selectedPiece] = {
+      trap: att ? +(rej / att).toFixed(2) : 0,
+      target: L.TRAP_TARGET[+$('diffRange').value],
+      range: [0, 1],
+      hearts: L.DIFF_HEARTS[+$('diffRange').value]
+    };
+    solCache = null;
+    refreshUI();
+    alert(currentLang === 'vi' ? '✅ Chuỗi chỉ hợp lệ và đã áp dụng cho mảnh này!' : '✅ Spool string verified & applied to this piece!');
+  } catch (e) {
+    alert((currentLang === 'vi' ? '⚠️ Chuỗi chỉ không hợp lệ: ' : '⚠️ Invalid spool string: ') + e.message);
+  }
+};
+
+// =====================================================================
+// SPLITTING ALGORITHM CALLS
+// =====================================================================
+function getSplitOptions(pieceIdx, diffVal) {
+  let rawSeed = +$('seedInput').value;
+  // If seed is -1 or invalid, randomize seed on each split
+  let baseSeed = (isNaN(rawSeed) || rawSeed === -1)
+    ? Math.floor(Math.random() * 999999) + 1
+    : rawSeed;
+
+  return {
+    diff: diffVal,
+    seed: baseSeed + pieceIdx * 17,
+    name: S.name,
+    number: pieceIdx + 1,
+    minLen: +$('minLenInput').value || 1,
+    maxSpools: +$('maxSpoolsInput').value || 8
+  };
+}
+
+function splitOnePiece(pieceIdx, diffVal) {
+  const rows = pieceRows(S, pieceIdx);
+  if (!rows.join('').replace(/\./g, '')) {
+    S.spools[pieceIdx] = '';
+    return;
+  }
+  const lv = L.splitLevel(rows, getSplitOptions(pieceIdx, diffVal));
+  S.spools[pieceIdx] = L.spoolText(lv);
+  S.baked[pieceIdx] = {
+    trap: lv.trap,
+    target: lv.trapTarget,
+    range: lv.trapRange,
+    hearts: L.DIFF_HEARTS[diffVal]
+  };
+}
+
+function executeSplit(isAll) {
+  snapshot();
+  const indices = isAll ? [...Array(pieceCount(S)).keys()] : [selectedPiece];
+  const diffVal = +$('diffRange').value;
+  const targetMax = +$('maxSpoolsInput').value || 8;
+
+  try {
+    for (const idx of indices) {
+      const d = S.tap ? (S.diffs[idx] ?? diffVal) : diffVal;
+      splitOnePiece(idx, d);
+      if (!isAll && S.tap) S.diffs[selectedPiece] = diffVal;
+    }
+    solCache = null;
+    refreshUI();
+
+    // Check which pieces exceeded maxSpools
+    const exceeded = [];
+    indices.forEach(idx => {
+      const spools = (S.spools[idx] || '').trim().split(/\s+/).filter(Boolean);
+      if (spools.length > targetMax) {
+        exceeded.push({ piece: idx + 1, count: spools.length });
+      }
+    });
+
+    if (exceeded.length > 0 && isAll) {
+      alert(
+        (currentLang === 'vi')
+          ? `⚠️ Đã chia xong, nhưng có ${exceeded.length} mảnh vượt quá Max = ${targetMax} cuộn:\n` +
+            exceeded.map(e => `• Mảnh #${e.piece}: ${e.count} cuộn`).join('\n') +
+            `\n\nHãy xem hộp "Giải thích nguyên nhân" màu cam ở bảng bên phải để biết lý do!`
+          : `⚠️ Splitting done, but ${exceeded.length} piece(s) exceeded Max = ${targetMax} spools:\n` +
+            exceeded.map(e => `• Piece #${e.piece}: ${e.count} spools`).join('\n') +
+            `\n\nSee the orange explanation box on the right for causes and solutions!`
+      );
+    }
+  } catch (e) {
+    alert('Lỗi phân chia cuộn chỉ: ' + e.message);
+  }
+}
+
+$('splitCurrentBtn').onclick = () => executeSplit(false);
+$('splitAllBtn').onclick = () => executeSplit(true);
+$('rerollSeedBtn').onclick = () => {
+  // If seed is not -1, randomize it
+  if (+$('seedInput').value !== -1) {
+    $('seedInput').value = Math.floor(Math.random() * 9999) + 1;
+  }
+  executeSplit(false);
+};
+
+// =====================================================================
+// STEP-BY-STEP PLAYBACK
+// =====================================================================
+function preparePlaybackSteps() {
+  const sol = getSolutionForPiece(selectedPiece);
+  flattenedSolutionSteps = [];
+  if (!sol) return;
+
+  sol.forEach((spoolSol, spoolIdx) => {
+    spoolSol.path.forEach((cellIdx, stepIdx) => {
+      flattenedSolutionSteps.push({
+        spoolIdx,
+        color: spoolSol.color,
+        cell: cellIdx,
+        step: stepIdx + 1,
+        totalInSpool: spoolSol.path.length
+      });
+    });
+  });
+}
+
+function updatePlaybackUI() {
+  $('stepProgressLabel').textContent = `Bước ${playbackStep} / ${flattenedSolutionSteps.length}`;
+  if (playbackStep > 0 && flattenedSolutionSteps.length >= playbackStep) {
+    const cur = flattenedSolutionSteps[playbackStep - 1];
+    const colorName = COLOR_NAMES[currentLang][cur.color] || cur.color;
+    $('currentSpoolLabel').textContent = `Cuộn #${cur.spoolIdx + 1}: ${cur.color} (${colorName}) - Mũi ${cur.step}/${cur.totalInSpool}`;
+  } else {
+    $('currentSpoolLabel').textContent = '-';
+  }
+  drawCanvas();
+}
+
+function stopPlayback() {
+  if (playbackTimer) {
+    clearInterval(playbackTimer);
+    playbackTimer = null;
+    $('stepPlayBtn').textContent = '▶ Phát';
+  }
+}
+
+$('stepStartBtn').onclick = () => {
+  stopPlayback();
+  playbackStep = 0;
+  updatePlaybackUI();
+};
+$('stepEndBtn').onclick = () => {
+  stopPlayback();
+  playbackStep = flattenedSolutionSteps.length;
+  updatePlaybackUI();
+};
+$('stepPrevBtn').onclick = () => {
+  stopPlayback();
+  if (playbackStep > 0) playbackStep--;
+  updatePlaybackUI();
+};
+$('stepNextBtn').onclick = () => {
+  stopPlayback();
+  if (playbackStep < flattenedSolutionSteps.length) playbackStep++;
+  updatePlaybackUI();
+};
+$('stepPlayBtn').onclick = () => {
+  if (playbackTimer) {
+    stopPlayback();
+  } else {
+    $('stepPlayBtn').textContent = '⏸ Tạm dừng';
+    playbackTimer = setInterval(() => {
+      if (playbackStep < flattenedSolutionSteps.length) {
+        playbackStep++;
+        updatePlaybackUI();
+      } else {
+        stopPlayback();
+      }
+    }, 200);
+  }
+};
+
+// =====================================================================
+// HEALTH & ANALYSIS CHECK
+// =====================================================================
+function runHealthCheck() {
+  const container = $('healthReportBox');
+  const rows = pieceRows(S, selectedPiece);
+  const issues = [];
+  const targetMax = +$('maxSpoolsInput').value || 8;
+  const curMinLen = +$('minLenInput').value || 1;
+
+  // Check 1: Isolated cells (< curMinLen)
+  let isolatedCount = 0;
+  const h = rows.length, w = rows[0].length;
+  const seen = new Set();
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const c = rows[y][x];
+      if (c === '.' || seen.has(y * w + x)) continue;
+      const q = [[x, y]];
+      seen.add(y * w + x);
+      let size = 0;
+      for (let k = 0; k < q.length; k++) {
+        const [cx, cy] = q[k];
+        size++;
+        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+          const nx = cx + dx, ny = cy + dy;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          if (seen.has(ny * w + nx) || rows[ny][nx] !== c) continue;
+          seen.add(ny * w + nx);
+          q.push([nx, ny]);
+        }
+      }
+      if (size < curMinLen) {
+        isolatedCount += size;
+      }
+    }
+  }
+
+  if (isolatedCount > 0) {
+    issues.push({
+      type: 'bad',
+      title: (currentLang === 'vi') ? `Có ${isolatedCount} ô nhỏ hơn độ dài tối thiểu (${curMinLen})!` : `${isolatedCount} cell(s) smaller than min length (${curMinLen})!`,
+      desc: (currentLang === 'vi') ? `Hãy kiểm tra lại nét vẽ trên hình hoặc chỉnh "Dài tối thiểu = 1" ở tab Cuộn chỉ.` : `Please adjust your artwork or set "Min length = 1" in the Spools tab.`
+    });
+  }
+
+  // Check 2: Exceeding config Max Spools
+  const spools = (S.spools[selectedPiece] || '').trim().split(/\s+/).filter(Boolean);
+  if (spools.length > targetMax) {
+    issues.push({
+      type: 'warn',
+      title: (currentLang === 'vi') ? `Số cuộn chỉ (${spools.length}) vượt mức Max đã đặt (${targetMax})!` : `Spool count (${spools.length}) exceeds Max config (${targetMax})!`,
+      desc: (currentLang === 'vi') ? 'Do các khối màu bị đứt đoạn thành nhiều cụm hoặc phân nhánh. Hãy xem hộp giải thích nguyên nhân ở tab Cuộn chỉ.' : 'Caused by fragmented color islands or branch deadlocks. See the explanation box in the Spools tab.'
+    });
+  }
+
+  // Check 3: Solvability
+  const sol = getSolutionForPiece(selectedPiece);
+  if (spools.length > 0 && !sol) {
+    issues.push({
+      type: 'bad',
+      title: (currentLang === 'vi') ? 'Không tìm được đường giải đố!' : 'No valid solution found!',
+      desc: (currentLang === 'vi') ? 'Các cuộn chỉ hiện tại không thể ghép thành tranh. Hãy bấm "Chia chỉ mảnh này" lại.' : 'Current spools cannot cover the pattern. Click "Split this piece" again.'
+    });
+  }
+
+  // Render report
+  if (!issues.length) {
+    container.innerHTML = `
+      <div style="background:#1a4225;border:1px solid var(--ok);border-radius:8px;padding:12px;color:var(--ok);">
+        <b>✅ ${currentLang === 'vi' ? 'Hoàn hảo! Không phát hiện lỗi nào.' : 'All clear! No design issues found.'}</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#c9f5d4;">
+          ${currentLang === 'vi' ? 'Mảnh này hợp lệ và sẵn sàng để chơi.' : 'This piece is fully playable and solvable.'}
+        </p>
+      </div>
+    `;
+  } else {
+    container.innerHTML = issues.map(iss => `
+      <div style="background:${iss.type === 'bad' ? '#4a1917' : '#473a11'};border:1px solid ${iss.type === 'bad' ? 'var(--bad)' : 'var(--warn)'};border-radius:8px;padding:10px;margin-bottom:8px;">
+        <b style="color:${iss.type === 'bad' ? 'var(--bad)' : 'var(--warn)'};">${iss.title}</b>
+        <p style="margin:4px 0 0;font-size:12px;color:var(--dim);">${iss.desc}</p>
+      </div>
+    `).join('');
+  }
+}
+
+// =====================================================================
+// FILE SYSTEM ACCESS & LOCAL SERVER 1-CLICK APPLY
+// =====================================================================
+const SERVER_URL = (location.protocol.startsWith('http') ? '' : 'http://localhost:3000');
+let isServerOnline = false;
+
+async function checkServerStatus() {
+  const badge = $('serverStatusBadge');
+  const btn = $('applyServerBtn');
+  try {
+    const res = await fetch(SERVER_URL + '/api/ping', { mode: 'cors' });
+    if (res.ok) {
+      isServerOnline = true;
+      badge.className = 'badge ok';
+      badge.textContent = (currentLang === 'vi') ? '🟢 Server sẵn sàng (1-Click OK)' : '🟢 Server online (1-Click OK)';
+      btn.disabled = false;
+      return;
+    }
+  } catch (e) {}
+  isServerOnline = false;
+  badge.className = 'badge warn';
+  badge.textContent = (currentLang === 'vi') ? '⚪ Chưa bật server (Chạy start_editor.bat)' : '⚪ Server offline';
+}
+
+// Method 1: Local Server 1-Click Apply
+$('applyServerBtn').onclick = async () => {
+  const msg = $('serverApplyMsg');
+  msg.className = 'toast-msg warn show';
+  msg.textContent = (currentLang === 'vi') ? 'Đang kiểm tra và ghi đè tự động...' : 'Validating and auto-applying...';
+
+  try {
+    if (!S.tap) throw new Error(currentLang === 'vi' ? 'Áp dụng trực tiếp chỉ hỗ trợ tranh Tapestry.' : 'Direct apply only supports Tapestry mode.');
+
+    const pc = pieceCount(S);
+    const missing = [];
+    for (let i = 0; i < pc; i++) {
+      if (!S.spools[i] || !S.spools[i].trim()) missing.push(i + 1);
+    }
+    if (missing.length) throw new Error((currentLang === 'vi') ? `Mảnh [${missing.join(', ')}] chưa có cuộn chỉ! Bấm "Chia TẤT CẢ các mảnh" trước.` : `Piece(s) [${missing.join(', ')}] have no spools! Run "Split ALL pieces" first.`);
+
+    const thisId = ($('levelTid').value || 'mytap').replace(/[^a-z0-9_]/gi, '');
+    const existingIds = L.makePictures().map(p => p.id);
+    if (existingIds.includes(thisId)) {
+      const conf = confirm((currentLang === 'vi')
+        ? `⚠️ ID "${thisId}" trùng với tranh gốc trong game.\n\nBấm OK để GHI ĐÈ, hoặc Cancel để đổi sang ID khác.`
+        : `⚠️ ID "${thisId}" matches a built-in tapestry.\n\nClick OK to OVERWRITE, or Cancel to change ID.`);
+      if (!conf) throw new Error(currentLang === 'vi' ? 'Đã hủy.' : 'Cancelled.');
+    }
+
+    const entryText = exportTapestryText();
+
+    const res = await fetch(SERVER_URL + '/api/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: thisId, entryText })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Server error');
+
+    msg.className = 'toast-msg ok show';
+    msg.textContent = (currentLang === 'vi') ? `✅ Đã ghi đè thành công "${S.name}" vào game!` : `✅ Successfully applied "${S.name}" to game!`;
+  } catch (err) {
+    msg.className = 'toast-msg bad show';
+    if (!isServerOnline && err.message.includes('fetch')) {
+      msg.innerHTML = (currentLang === 'vi')
+        ? `⚠️ Chưa bật Server! Hãy nháy đúp vào <b>start_editor.bat</b> (hoặc chạy <code>node server.js</code>) rồi bấm lại nút này.`
+        : `⚠️ Server is offline! Run <b>start_editor.bat</b> (or <code>node server.js</code>) then try again.`;
+    } else {
+      msg.textContent = '⚠️ ' + err.message;
+    }
+  }
+};
+
+// Method 2: Fallback Manual File Picker
+let logicHandle = null;
+let indexHandle = null;
+
+$('pickFilesBtn').onclick = async () => {
+  const msg = $('applyStatusMsg');
+  if (!window.showOpenFilePicker) {
+    msg.className = 'toast-msg bad show';
+    msg.textContent = (currentLang === 'vi') ? 'Trình duyệt không hỗ trợ File System Access API (hãy dùng Chrome hoặc Edge).' : 'Browser does not support File System Access API (use Chrome/Edge).';
+    return;
+  }
+  try {
+    msg.className = 'toast-msg warn show';
+    msg.textContent = (currentLang === 'vi') ? 'Đang chọn logic.js...' : 'Selecting logic.js...';
+    [logicHandle] = await window.showOpenFilePicker({ types: [{ description: 'logic.js', accept: { 'text/javascript': ['.js'] } }] });
+
+    msg.textContent = (currentLang === 'vi') ? 'Đang chọn index.html...' : 'Selecting index.html...';
+    [indexHandle] = await window.showOpenFilePicker({ types: [{ description: 'index.html', accept: { 'text/html': ['.html'] } }] });
+
+    msg.className = 'toast-msg ok show';
+    msg.textContent = (currentLang === 'vi') ? `✓ Đã kết nối: ${logicHandle.name} & ${indexHandle.name}` : `✓ Connected: ${logicHandle.name} & ${indexHandle.name}`;
+    $('applyGameBtn').disabled = false;
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      msg.className = 'toast-msg bad show';
+      msg.textContent = e.message;
+    }
+  }
+};
+
+$('applyGameBtn').onclick = async () => {
+  const msg = $('applyStatusMsg');
+  msg.className = 'toast-msg warn show';
+  msg.textContent = (currentLang === 'vi') ? 'Đang kiểm tra dữ liệu...' : 'Validating data...';
+
+  try {
+    if (!S.tap) throw new Error(currentLang === 'vi' ? 'Áp dụng trực tiếp hiện chỉ hỗ trợ tranh Tapestry.' : 'Apply directly only supports Tapestry mode.');
+
+    const pc = pieceCount(S);
+    const missing = [];
+    for (let i = 0; i < pc; i++) {
+      if (!S.spools[i] || !S.spools[i].trim()) missing.push(i + 1);
+    }
+    if (missing.length) throw new Error((currentLang === 'vi') ? `Mảnh [${missing.join(', ')}] chưa có cuộn chỉ! Bấm "Chia TẤT CẢ các mảnh" trước.` : `Piece(s) [${missing.join(', ')}] have no spools! Run "Split ALL pieces" first.`);
+
+    const thisId = ($('levelTid').value || 'mytap').replace(/[^a-z0-9_]/gi, '');
+    const existingIds = L.makePictures().map(p => p.id);
+    if (existingIds.includes(thisId)) {
+      const conf = confirm((currentLang === 'vi')
+        ? `⚠️ ID "${thisId}" trùng với tranh gốc trong game.\n\nBấm OK để GHI ĐÈ, hoặc Cancel để đổi sang ID khác.`
+        : `⚠️ ID "${thisId}" matches a built-in game tapestry.\n\nClick OK to OVERWRITE, or Cancel to change ID.`);
+      if (!conf) throw new Error(currentLang === 'vi' ? 'Đã hủy.' : 'Cancelled.');
+    }
+
+    const entryText = exportTapestryText();
+
+    const logicFile = await logicHandle.getFile();
+    let logicText = await logicFile.text();
+    logicText = applyTapEntry(logicText, thisId, entryText);
+
+    const lw = await logicHandle.createWritable();
+    await lw.write(logicText);
+    await lw.close();
+
+    const indexFile = await indexHandle.getFile();
+    let indexText = await indexFile.text();
+    const ma = indexText.indexOf('// BEGIN PURE LOGIC');
+    const mb = indexText.indexOf('// END PURE LOGIC');
+    if (ma < 0 || mb < 0) throw new Error('Không tìm thấy markers BEGIN/END PURE LOGIC trong index.html');
+
+    indexText = indexText.slice(0, ma) + '// BEGIN PURE LOGIC\n' + logicText.trim() + '\n' + indexText.slice(mb);
+    const iw = await indexHandle.createWritable();
+    await iw.write(indexText);
+    await iw.close();
+
+    msg.className = 'toast-msg ok show';
+    msg.textContent = (currentLang === 'vi') ? `✅ Đã áp dụng thành công "${S.name}" vào game!` : `✅ Successfully applied "${S.name}" to game!`;
+  } catch (e) {
+    msg.className = 'toast-msg bad show';
+    msg.textContent = '⚠️ ' + e.message;
+  }
+};
+
+function applyTapEntry(logicText, id, newEntry) {
+  const startMarker = "{id:'" + id + "'";
+  const startIdx = logicText.indexOf(startMarker);
+  if (startIdx >= 0) {
+    let bt = startIdx, count = 0;
+    while (count < 4 && bt < logicText.length) {
+      bt = logicText.indexOf('`', bt + 1);
+      if (bt < 0) throw new Error('Không parse được entry cũ trong TAP[].');
+      count++;
+    }
+    const closeIdx = logicText.indexOf('}', bt);
+    if (closeIdx < 0) throw new Error('Không tìm thấy dấu đóng }');
+    let lineStart = startIdx;
+    while (lineStart > 0 && logicText[lineStart - 1] !== '\n') lineStart--;
+    let lineEnd = closeIdx + 1;
+    if (logicText[lineEnd] === ',') lineEnd++;
+    if (logicText[lineEnd] === '\n') lineEnd++;
+    return logicText.slice(0, lineStart) + '  ' + newEntry + ',\n' + logicText.slice(lineEnd);
+  } else {
+    const tapStart = logicText.indexOf('const TAP=[');
+    if (tapStart < 0) throw new Error('Không tìm thấy const TAP=[');
+    let pos = tapStart;
+    while (pos < logicText.length) {
+      const nl = logicText.indexOf('\n', pos);
+      if (nl < 0) break;
+      const line = logicText.slice(nl + 1).match(/^[ \t]*\];/);
+      if (line) {
+        return logicText.slice(0, nl) + ',\n  ' + newEntry + logicText.slice(nl);
+      }
+      pos = nl + 1;
+    }
+    throw new Error('Không tìm thấy dòng kết thúc ];');
+  }
+}
+
+// Code Exporters
+function exportTapestryText() {
+  const art = [];
+  for (let y = 0; y < S.h; y++) {
+    let t = '';
+    for (let x = 0; x < S.w; x++) {
+      if (x && x % 8 === 0) t += ' ';
+      t += S.cells[y * S.w + x];
+    }
+    art.push(t);
+  }
+  const used = [...new Set(S.cells.filter(c => c !== '.'))].sort();
+  const pal = '{' + used.map(c => c + ":'" + (S.palette[c] || BASE_PALETTE[c]) + "'").join(',') + '}';
+  const n = pieceCount(S);
+  const spl = [];
+  for (let i = 0; i < n; i++) spl.push(S.spools[i] || '');
+  const diffs = Array.from({ length: n }, (_, i) => S.diffs[i] ?? S.diff);
+  const id = ($('levelTid').value || 'mytap').replace(/[^a-z0-9_]/gi, '');
+
+  return `{id:'${id}',name:'${S.name.replace(/'/g, "\\'")}',short:'${S.name.split(' ')[0]}',background:'${S.background}',palette:${pal},diff:${S.diff},diffs:[${diffs}],cfg:{},art:\`\n${art.join('\n')}\n\`,spools:\`\n${spl.join('\n')}\n\`}`;
+}
+
+function exportMotifText() {
+  const rows = [];
+  for (let y = 0; y < S.h; y++) {
+    let r = '';
+    for (let x = 0; x < S.w; x++) r += S.cells[y * S.w + x];
+    rows.push("'" + r + "'");
+  }
+  return `['${S.name.replace(/'/g, "\\'")}', [${rows.join(',')}]] // spools: ${S.spools[0] || '(chưa chia)'}`;
+}
+
+$('expTapBtn').onclick = () => $('exportOutput').textContent = exportTapestryText();
+$('expMotifBtn').onclick = () => $('exportOutput').textContent = exportMotifText();
+$('expJsonBtn').onclick = () => $('exportOutput').textContent = JSON.stringify(S, null, 2);
+
+$('copyCodeBtn').onclick = async () => {
+  const text = $('exportOutput').textContent;
+  await navigator.clipboard.writeText(text);
+  $('copyCodeBtn').textContent = '✓ ' + ((currentLang === 'vi') ? 'Đã chép' : 'Copied');
+  setTimeout(() => $('copyCodeBtn').textContent = '📋 ' + I18N[currentLang].copyBtn, 1000);
+};
+
+$('downloadCodeBtn').onclick = () => {
+  const text = $('exportOutput').textContent;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text]));
+  a.download = (S.tid || 'level') + '.txt';
+  a.click();
+};
+
+$('importJsonBtn').onclick = () => $('jsonFileInput').click();
+$('jsonFileInput').onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    S = Object.assign(createBlankState(8, 8), JSON.parse(await f.text()));
+    selectedPiece = 0;
+    solCache = null;
+    refreshUI(true);
+  } catch (err) {
+    alert('File lỗi: ' + err.message);
+  }
+};
+
+// =====================================================================
+// IMAGE IMPORT (K-MEANS COLOR QUANTIZATION)
+// =====================================================================
+let loadedImg = null;
+$('imgUploadInput').onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    loadedImg = img;
+    $('generateFromImgBtn').disabled = false;
+    if ($('imgKeepAspect').checked) {
+      $('imgRows').value = Math.max(8, Math.round(+$('imgCols').value * img.height / img.width));
+    }
+  };
+  img.src = URL.createObjectURL(file);
+};
+
+$('generateFromImgBtn').onclick = () => {
+  if (!loadedImg) return;
+  snapshot();
+  const W = Math.max(8, Math.min(64, +$('imgCols').value));
+  const H = Math.max(8, Math.min(64, +$('imgRows').value));
+  const K = Math.max(2, Math.min(11, +$('imgColors').value));
+
+  const off = document.createElement('canvas');
+  off.width = W; off.height = H;
+  const octx = off.getContext('2d', { willReadFrequently: true });
+  octx.drawImage(loadedImg, 0, 0, W, H);
+  const imgData = octx.getImageData(0, 0, W, H).data;
+
+  const pixels = [];
+  const alphas = [];
+  for (let i = 0; i < W * H; i++) {
+    pixels.push([imgData[i * 4], imgData[i * 4 + 1], imgData[i * 4 + 2]]);
+    alphas.push(imgData[i * 4 + 3]);
+  }
+
+  // K-means
+  let centroids = [pixels[0].slice()];
+  while (centroids.length < K) {
+    centroids.push(pixels[Math.floor(Math.random() * pixels.length)].slice());
+  }
+
+  for (let iter = 0; iter < 8; iter++) {
+    const clusterSums = Array.from({ length: K }, () => [0, 0, 0, 0]);
+    pixels.forEach(p => {
+      let bestDist = 1e9, bestIdx = 0;
+      centroids.forEach((c, idx) => {
+        const d = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2;
+        if (d < bestDist) { bestDist = d; bestIdx = idx; }
+      });
+      clusterSums[bestIdx][0] += p[0];
+      clusterSums[bestIdx][1] += p[1];
+      clusterSums[bestIdx][2] += p[2];
+      clusterSums[bestIdx][3]++;
+    });
+    centroids = clusterSums.map((s, idx) => s[3] ? [s[0] / s[3], s[1] / s[3], s[2] / s[3]] : centroids[idx]);
+  }
+
+  const assigned = pixels.map(p => {
+    let bestDist = 1e9, bestIdx = 0;
+    centroids.forEach((c, idx) => {
+      const d = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2;
+      if (d < bestDist) { bestDist = d; bestIdx = idx; }
+    });
+    return bestIdx;
+  });
+
+  const hexCol = rgb => '#' + rgb.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+  const counts = centroids.map((_, i) => assigned.filter(v => v === i).length);
+  const bgIdx = $('imgAutoBg').checked ? counts.indexOf(Math.max(...counts)) : -1;
+
+  const sortedClusters = centroids.map((_, i) => i).filter(i => i !== bgIdx && counts[i] > 0);
+  const colorMap = {};
+  const newPalette = { ...BASE_PALETTE };
+
+  sortedClusters.forEach((cIdx, i) => {
+    const letter = LETTERS[i % LETTERS.length];
+    colorMap[cIdx] = letter;
+    newPalette[letter] = hexCol(centroids[cIdx]);
+  });
+
+  S = createBlankState(W, H, S.name);
+  S.palette = newPalette;
+  if (bgIdx >= 0) S.background = hexCol(centroids[bgIdx]);
+  S.cells = assigned.map((v, i) => (alphas[i] < 60 || v === bgIdx) ? '.' : (colorMap[v] || '.'));
+
+  $('gw').value = W;
+  $('gh').value = H;
+  selectedPiece = 0;
+  refreshUI(true);
+};
+
+// =====================================================================
+// SOURCE LOADING & INITIALIZATION
+// =====================================================================
+function buildSources() {
+  const o = [];
+  o.push('<optgroup label="Tapestries (Tranh lớn)">');
+  L.makePictures().forEach((p, i) => o.push(`<option value="t${i}">${p.name} (${p.w}x${p.h})</option>`));
+  o.push('</optgroup><optgroup label="Mini levels">');
+  L.generateLevels().forEach((l, i) => o.push(`<option value="m${i}">L${l.number} ${l.name}</option>`));
+  o.push('</optgroup>');
+
+  const draft = localStorage.getItem('stitchEditor_v2');
+  if (draft) o.push('<optgroup label="Bản nháp tự lưu"><option value="draft">Bản nháp gần nhất</option></optgroup>');
+
+  $('src').innerHTML = o.join('');
+}
+
+function loadSource(val) {
+  if (val === 'draft') {
+    S = JSON.parse(localStorage.getItem('stitchEditor_v2'));
+  } else if (val[0] === 'm') {
+    const lv = L.generateLevels()[+val.slice(1)];
+    S = createBlankState(lv.w, lv.h, lv.name);
+    S.cells = lv.cells.map(c => c === '#' ? '.' : c.toUpperCase());
+    S.spools[0] = lv.spools.map(s => s.color + s.length).join(' ');
+    S.diff = Math.min(5, Math.max(1, Math.round(lv.number / 4)));
+    S.tap = false;
+  } else {
+    const p = L.makePictures()[+val.slice(1)];
+    S = createBlankState(p.w, p.h, p.name);
+    S.cells = p.rows.join('').split('');
+    S.palette = { ...BASE_PALETTE, ...p.palette };
+    S.background = p.background;
+    S.tap = true;
+    S.diff = p.diff ?? 3;
+    S.diffs = p.diffs ? [...p.diffs] : [];
+    (p.baked || []).forEach((t, i) => S.spools[i] = t);
+    S.tid = p.id;
+  }
+
+  historyStack = [];
+  redoStack = [];
+  selectedPiece = 0;
+  solCache = null;
+  refreshUI(true);
+}
+
+$('loadBtn').onclick = () => loadSource($('src').value);
+$('blankBtn').onclick = () => {
+  S = createBlankState(+$('gw').value || 24, +$('gh').value || 24);
+  selectedPiece = 0;
+  refreshUI(true);
+};
+
+$('resizeBtn').onclick = () => {
+  snapshot();
+  const nw = Math.max(2, Math.min(64, +$('gw').value));
+  const nh = Math.max(2, Math.min(64, +$('gh').value));
+  const newCells = Array(nw * nh).fill('.');
+  for (let y = 0; y < Math.min(nh, S.h); y++) {
+    for (let x = 0; x < Math.min(nw, S.w); x++) {
+      newCells[y * nw + x] = S.cells[y * S.w + x];
+    }
+  }
+  S.w = nw;
+  S.h = nh;
+  S.cells = newCells;
+  S.tap = (nw % 8 === 0 && nh % 8 === 0 && nw >= 8 && nh >= 8);
+  selectedPiece = 0;
+  solCache = null;
+  refreshUI(true);
+};
+
+// =====================================================================
+// UI TABS & REFRESH LOGIC
+// =====================================================================
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel-card').forEach(x => x.style.display = 'none');
+    b.classList.add('active');
+    $(b.dataset.tab).style.display = 'flex';
+    if (b.dataset.tab === 'tabExport') checkServerStatus();
+  };
+});
+
+function refreshUI(rebuildInputs = false) {
+  if (rebuildInputs) {
+    $('gw').value = S.w;
+    $('gh').value = S.h;
+    $('levelName').value = S.name;
+    $('levelTid').value = S.tid || '';
+    $('tapModeCheckbox').checked = S.tap;
+    $('diffRange').value = S.diffs[selectedPiece] ?? S.diff;
+  }
+
+  const diffVal = +$('diffRange').value;
+  $('diffLabelText').textContent = `${I18N[currentLang].diffNames[diffVal]} - ${Math.round(L.TRAP_TARGET[diffVal] * 100)}% bẫy`;
+  $('diffHeartsText').textContent = `❤️ ${L.DIFF_HEARTS[diffVal]} tim`;
+
+  drawCanvas();
+  renderPalette();
+  renderPieceNavigator();
+  renderSpoolBreakdown();
+  preparePlaybackSteps();
+  runHealthCheck();
+  saveDraft();
+}
+
+// Bind Inputs
+$('diffRange').oninput = () => {
+  const d = +$('diffRange').value;
+  if (S.tap) S.diffs[selectedPiece] = d;
+  else S.diff = d;
+  refreshUI();
+};
+$('tapModeCheckbox').onchange = () => {
+  S.tap = $('tapModeCheckbox').checked;
+  refreshUI();
+};
+$('focusMode').onchange = drawCanvas;
+$('showSolutionToggle').onchange = drawCanvas;
+$('zoom').oninput = drawCanvas;
+$('levelName').oninput = () => S.name = $('levelName').value;
+$('levelTid').oninput = () => S.tid = $('levelTid').value;
+$('undoBtn').onclick = undo;
+$('redoBtn').onclick = redo;
+
+// Keyboard shortcuts
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redo(); }
+  const toolMap = { p: 'pen', l: 'line', f: 'fill', e: 'erase', i: 'pick' };
+  if (toolMap[e.key.toLowerCase()]) setTool(toolMap[e.key.toLowerCase()]);
+});
+
+// START
+buildSources();
+S = createBlankState(24, 24, 'Duck Pond');
+if (L.makePictures && L.makePictures().length > 0) {
+  loadSource('t0');
+} else {
+  refreshUI(true);
+}
+setLang(currentLang);
+checkServerStatus();
+</script>
+</body>
+</html>
