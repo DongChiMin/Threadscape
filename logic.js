@@ -238,6 +238,45 @@
   return{personas:results,ambiguityScore,junctionCells,totalColored,estSeconds,heatmap:Array.from(heatmap)};
  }
  // ---- levels ----
+ const MINI_OVERRIDES = {};
+ function buildMiniOverride(number, data) {
+  const {name, rows, spools, difficultyLabel, palette} = data;
+  if (!Number.isInteger(number) || number < 1 || number > 20) throw Error('Invalid mini-level number');
+  if (typeof name !== 'string' || !name.trim() || name.length > 120 || /[<"]/.test(name)) throw Error('Invalid level name');
+  if (!Array.isArray(rows) || !rows.length || rows.length > 64 ||
+      !rows.every(row => typeof row === 'string' && row.length === rows[0].length && row.length > 0 && row.length <= 64 &&
+        [...row].every(c => c === '.' || c === '#' || COLORS.includes(c.toUpperCase())))) throw Error('Invalid mini-level grid');
+  if (difficultyLabel != null && !['easy','medium','hard'].includes(difficultyLabel)) throw Error('Invalid difficulty label');
+  if (typeof spools !== 'string' || !spools.trim().split(/\s+/).every(token => /^[A-Z][1-9]\d{0,3}$/.test(token) && COLORS.includes(token[0]))) {
+   throw Error('Invalid spools. Split the level before saving.');
+  }
+  const level = parseLevel(name, rows.map(row => row.toUpperCase()), number);
+  [...rows.join('')].forEach((c,i) => {
+   if (COLORS.includes(c.toUpperCase()) && c !== c.toUpperCase()) {
+    level.cells[i] = c;
+    level.prestitch.add(i);
+   }
+  });
+  level.spools = spools.trim().split(/\s+/).map((token,id) => ({id,color:token[0],length:+token.slice(1),done:false}));
+  const solution = solve(makeState(level));
+  if (!solution) throw Error('Spools do not cover the level. Split the level again before saving.');
+  level.solution = solution;
+  if (palette != null && (typeof palette !== 'object' || Array.isArray(palette) ||
+      Object.entries(palette).some(([key,value]) => key.length !== 1 || !COLORS.includes(key) || typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)))) throw Error('Invalid level palette');
+  level.palette = palette;
+  level.difficultyLabel = difficultyLabel;
+  return level;
+ }
+ function applyMiniOverride(source, number, data) {
+  buildMiniOverride(number, data);
+  const marker = /^ const MINI_OVERRIDES = (\{[^\r\n]*\});$/m;
+  const match = source.match(marker);
+  if (!match) throw Error('This logic.js does not support mini-level overrides');
+  const overrides = JSON.parse(match[1]);
+  overrides[number] = data;
+  const json = JSON.stringify(overrides).replaceAll('<', '\\u003c');
+  return source.replace(marker, () => ' const MINI_OVERRIDES = ' + json + ';');
+ }
  const FIXTURE={name:'First Stitch',rows:['RRRG','RGGG','RRGG'],spools:[{color:'R',length:6},{color:'G',length:6}]};
  const MOTIFS=[ // Levels 2-20. Floss colours use COLORS, '.' is bare fabric and '#' is a tear.
   ['Flower',['..PP..','.PPPP.','PPYYPP','PPYYPP','.PPPP.','..GGG.','..G...']],
@@ -291,6 +330,7 @@
  function generateLevels(){
   const levels=[parseLevel(FIXTURE.name,FIXTURE.rows,1)];levels[0].difficultyLabel=FIXTURE.difficultyLabel;levels[0].spools=FIXTURE.spools.map((s,id)=>({...s,id,done:false}));levels[0].solution=solve(makeState(levels[0]))||[];
   for(let n=2;n<=20;n++){const [name,rows,extra]=MOTIFS[n-2],cfg={...DIFFICULTY.find(t=>n<=t.to),...extra};const level=extra?.bakedSpools ? levelFromBaked(n,name,rows,extra.bakedSpools) : bestLevel(n,name,rows,cfg,n);level.difficultyLabel=extra?.difficultyLabel;levels.push(level)}
+  for (const [number, data] of Object.entries(MINI_OVERRIDES)) levels[+number-1] = buildMiniOverride(+number, data);
   return levels}
  // best of cfg.cands random partitions; tn = "difficulty level number" that drives the bot-fail target
  function bestLevel(n,name,rows,cfg,tn){let best=null,bestScore=Infinity;
@@ -668,6 +708,6 @@ Y7 V3 P6 P2 P1 P1 P1 P1 T4 T1 K3 K2 C2 C2 C1 C1 C1 C1 C1
    Object.assign(lv,{difficultyLabel:pic.difficultyLabels?.[i],hearts:DIFF_HEARTS[diff],pic:pic.id,picName:pic.name,picShort:pic.short,piece:i,pieces:pic.count,px:i%pic.cols,py:i/pic.cols|0,cols:pic.cols});out.push(lv)}
   return out}
 
- return{trapCount,colorComps,adj,splitLevel,levelFromBaked,spoolText,TRAP_TARGET,DIFF_NAME,DIFF_HEARTS,COLORS,regionSize,strandInfo,makePictures,generateTapestry,DIFFICULTY,mulberry32,makeState,neighbors,cell,remaining,lengths,solveCells,solveColor,solve,isSolvable,legalNext,validStarts,analyzeSpool,countPartitions,botSim,humanSim,failTarget,pathStatus,autoRun,autoStitch,ASSIST,FIXTURE,MOTIFS,parseLevel,generateLevels,metrics};
+ return{applyMiniOverride,trapCount,colorComps,adj,splitLevel,levelFromBaked,spoolText,TRAP_TARGET,DIFF_NAME,DIFF_HEARTS,COLORS,regionSize,strandInfo,makePictures,generateTapestry,DIFFICULTY,mulberry32,makeState,neighbors,cell,remaining,lengths,solveCells,solveColor,solve,isSolvable,legalNext,validStarts,analyzeSpool,countPartitions,botSim,humanSim,failTarget,pathStatus,autoRun,autoStitch,ASSIST,FIXTURE,MOTIFS,parseLevel,generateLevels,metrics};
 })();
 if(typeof module!=='undefined')module.exports=Logic;

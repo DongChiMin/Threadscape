@@ -292,6 +292,45 @@ const Logic=(()=>{
   return{personas:results,ambiguityScore,junctionCells,totalColored,estSeconds,heatmap:Array.from(heatmap)};
  }
  // ---- levels ----
+ const MINI_OVERRIDES = {};
+ function buildMiniOverride(number, data) {
+  const {name, rows, spools, difficultyLabel, palette} = data;
+  if (!Number.isInteger(number) || number < 1 || number > 20) throw Error('Invalid mini-level number');
+  if (typeof name !== 'string' || !name.trim() || name.length > 120 || /[<"]/.test(name)) throw Error('Invalid level name');
+  if (!Array.isArray(rows) || !rows.length || rows.length > 64 ||
+      !rows.every(row => typeof row === 'string' && row.length === rows[0].length && row.length > 0 && row.length <= 64 &&
+        [...row].every(c => c === '.' || c === '#' || COLORS.includes(c.toUpperCase())))) throw Error('Invalid mini-level grid');
+  if (difficultyLabel != null && !['easy','medium','hard'].includes(difficultyLabel)) throw Error('Invalid difficulty label');
+  if (typeof spools !== 'string' || !spools.trim().split(/\s+/).every(token => /^[A-Z][1-9]\d{0,3}$/.test(token) && COLORS.includes(token[0]))) {
+   throw Error('Invalid spools. Split the level before saving.');
+  }
+  const level = parseLevel(name, rows.map(row => row.toUpperCase()), number);
+  [...rows.join('')].forEach((c,i) => {
+   if (COLORS.includes(c.toUpperCase()) && c !== c.toUpperCase()) {
+    level.cells[i] = c;
+    level.prestitch.add(i);
+   }
+  });
+  level.spools = spools.trim().split(/\s+/).map((token,id) => ({id,color:token[0],length:+token.slice(1),done:false}));
+  const solution = solve(makeState(level));
+  if (!solution) throw Error('Spools do not cover the level. Split the level again before saving.');
+  level.solution = solution;
+  if (palette != null && (typeof palette !== 'object' || Array.isArray(palette) ||
+      Object.entries(palette).some(([key,value]) => key.length !== 1 || !COLORS.includes(key) || typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)))) throw Error('Invalid level palette');
+  level.palette = palette;
+  level.difficultyLabel = difficultyLabel;
+  return level;
+ }
+ function applyMiniOverride(source, number, data) {
+  buildMiniOverride(number, data);
+  const marker = /^ const MINI_OVERRIDES = (\{[^\r\n]*\});$/m;
+  const match = source.match(marker);
+  if (!match) throw Error('This logic.js does not support mini-level overrides');
+  const overrides = JSON.parse(match[1]);
+  overrides[number] = data;
+  const json = JSON.stringify(overrides).replaceAll('<', '\\u003c');
+  return source.replace(marker, () => ' const MINI_OVERRIDES = ' + json + ';');
+ }
  const FIXTURE={name:'First Stitch',rows:['RRRG','RGGG','RRGG'],spools:[{color:'R',length:6},{color:'G',length:6}]};
  const MOTIFS=[ // Levels 2-20. Floss colours use COLORS, '.' is bare fabric and '#' is a tear.
   ['Flower',['..PP..','.PPPP.','PPYYPP','PPYYPP','.PPPP.','..GGG.','..G...']],
@@ -345,6 +384,7 @@ const Logic=(()=>{
  function generateLevels(){
   const levels=[parseLevel(FIXTURE.name,FIXTURE.rows,1)];levels[0].difficultyLabel=FIXTURE.difficultyLabel;levels[0].spools=FIXTURE.spools.map((s,id)=>({...s,id,done:false}));levels[0].solution=solve(makeState(levels[0]))||[];
   for(let n=2;n<=20;n++){const [name,rows,extra]=MOTIFS[n-2],cfg={...DIFFICULTY.find(t=>n<=t.to),...extra};const level=extra?.bakedSpools ? levelFromBaked(n,name,rows,extra.bakedSpools) : bestLevel(n,name,rows,cfg,n);level.difficultyLabel=extra?.difficultyLabel;levels.push(level)}
+  for (const [number, data] of Object.entries(MINI_OVERRIDES)) levels[+number-1] = buildMiniOverride(+number, data);
   return levels}
  // best of cfg.cands random partitions; tn = "difficulty level number" that drives the bot-fail target
  function bestLevel(n,name,rows,cfg,tn){let best=null,bestScore=Infinity;
@@ -722,7 +762,7 @@ Y7 V3 P6 P2 P1 P1 P1 P1 T4 T1 K3 K2 C2 C2 C1 C1 C1 C1 C1
    Object.assign(lv,{difficultyLabel:pic.difficultyLabels?.[i],hearts:DIFF_HEARTS[diff],pic:pic.id,picName:pic.name,picShort:pic.short,piece:i,pieces:pic.count,px:i%pic.cols,py:i/pic.cols|0,cols:pic.cols});out.push(lv)}
   return out}
 
- return{trapCount,colorComps,adj,splitLevel,levelFromBaked,spoolText,TRAP_TARGET,DIFF_NAME,DIFF_HEARTS,COLORS,regionSize,strandInfo,makePictures,generateTapestry,DIFFICULTY,mulberry32,makeState,neighbors,cell,remaining,lengths,solveCells,solveColor,solve,isSolvable,legalNext,validStarts,analyzeSpool,countPartitions,botSim,humanSim,failTarget,pathStatus,autoRun,autoStitch,ASSIST,FIXTURE,MOTIFS,parseLevel,generateLevels,metrics};
+ return{applyMiniOverride,trapCount,colorComps,adj,splitLevel,levelFromBaked,spoolText,TRAP_TARGET,DIFF_NAME,DIFF_HEARTS,COLORS,regionSize,strandInfo,makePictures,generateTapestry,DIFFICULTY,mulberry32,makeState,neighbors,cell,remaining,lengths,solveCells,solveColor,solve,isSolvable,legalNext,validStarts,analyzeSpool,countPartitions,botSim,humanSim,failTarget,pathStatus,autoRun,autoStitch,ASSIST,FIXTURE,MOTIFS,parseLevel,generateLevels,metrics};
 })();
 if(typeof module!=='undefined')module.exports=Logic;
 // END PURE LOGIC
@@ -854,7 +894,7 @@ if(/[?&]sound=1/.test(location.search))setTimeout(()=>{const items=[
 
 // Pitch base rises with every spool already finished in this level (2 scale steps each); stitches climb the scale inside a spool.
 function pitchBase(){return game?game.spools.filter(s=>s.done).length:0}
-function startLevel(n){document.querySelector('.fly-card')?.remove();level=levels[clamp(n,1,levels.length)-1];setPal(picOf(level));lastPlayed=level.number;game={stitched:new Set(),spools:level.spools.map(s=>({...s})),maxHearts:level.hearts||CONFIG.hearts,hearts:level.hearts||CONFIG.hearts,hints:CONFIG.hints,bonus:0,boost:{...CONFIG.boosters},revived:false,history:[],started:performance.now(),complete:false};selected=game.spools[0]||null;parked=null;dragging=false;screen='game';tutorialKey='';ghostKey='';areaKey='';hintPath=null;winPending=false;clearTimeout(winTimer);cutMode=false;cutBusy=false;app.classList.remove('cutting');tutorialStarts=[];toastUntil=0;particles.length=0;effects.length=0;stitchTimes.clear();stat().starts++;persist();view.zoom=1;view.panX=0;view.panY=0;updateMinimap();updateUI();hidePanel();buildCache();lastAction=performance.now();levelTips();if(DEMO)queueDemo()}
+function startLevel(n){document.querySelector('.fly-card')?.remove();level=levels[clamp(n,1,levels.length)-1];setPal(picOf(level)||level);lastPlayed=level.number;game={stitched:new Set(),spools:level.spools.map(s=>({...s})),maxHearts:level.hearts||CONFIG.hearts,hearts:level.hearts||CONFIG.hearts,hints:CONFIG.hints,bonus:0,boost:{...CONFIG.boosters},revived:false,history:[],started:performance.now(),complete:false};selected=game.spools[0]||null;parked=null;dragging=false;screen='game';tutorialKey='';ghostKey='';areaKey='';hintPath=null;winPending=false;clearTimeout(winTimer);cutMode=false;cutBusy=false;app.classList.remove('cutting');tutorialStarts=[];toastUntil=0;particles.length=0;effects.length=0;stitchTimes.clear();stat().starts++;persist();view.zoom=1;view.panX=0;view.panY=0;updateMinimap();updateUI();hidePanel();buildCache();lastAction=performance.now();levelTips();if(DEMO)queueDemo()}
 function showPanel(html,scene=false){hideTip();$('overlay').innerHTML=`<div class="panel">${html}</div>`;$('overlay').classList.add('show');$('overlay').classList.toggle('scene',scene)}
 function hidePanel(){$('overlay').classList.remove('show');$('overlay').innerHTML=''}
 function pictureData(p,size,opt){return withPal(p,()=>pictureData0(p,size,opt))}
@@ -1001,7 +1041,7 @@ const CREAM='#f1e1c4',solidCache={};
 // every stitch becomes a closed, flat pixel (empty fabric cells take the scene colour)
 function solidCanvas(w,h,chAt,S,bg){const W=S,H=Math.round(S*h/w),c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.fillStyle=bg;g.fillRect(0,0,W,H);const sx=W/w,sy=H/h;
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const col=PALETTE[String(chAt(x,y)||'').toUpperCase()];if(!col)continue;g.fillStyle=col;g.fillRect(x*sx-.3,y*sy-.3,sx+.6,sy+.6)}return c}
-function solidLevelData(l){const k='L'+l.number;if(solidCache[k])return solidCache[k];return withPal(picOf(l),()=>solidLevelData0(l,k))}
+function solidLevelData(l){const k='L'+l.number;if(solidCache[k])return solidCache[k];return withPal(picOf(l)||l,()=>solidLevelData0(l,k))}
 function solidLevelData0(l,k){const S=104,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.fillStyle=CREAM;g.fillRect(0,0,S,S);const s=88/Math.max(l.w,l.h),ox=(S-l.w*s)/2,oy=(S-l.h*s)/2;
  for(let i=0;i<l.cells.length;i++){const col=PALETTE[l.cells[i].toUpperCase()];if(!col)continue;g.fillStyle=col;g.fillRect(ox+(i%l.w)*s-.3,oy+(i/l.w|0)*s-.3,s+.6,s+.6)}return solidCache[k]=c.toDataURL()}
 function solidPictureData(p,size){const k='T'+p.id+size;return solidCache[k]||(solidCache[k]=withPal(p,()=>solidCanvas(p.w,p.h,(x,y)=>p.rows[y][x],size,p.background).toDataURL()))}

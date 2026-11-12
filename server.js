@@ -3,6 +3,7 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const Logic = require('./logic.js');
 
 const PORT = 3000;
 const ROOT = __dirname;
@@ -53,14 +54,14 @@ function applyTapEntry(logicText, id, newEntry) {
   }
 }
 
-function spliceIntoIndex(logicText) {
+function prepareIndex(logicText) {
   const indexPath = path.join(ROOT, 'index.html');
   const indexHtml = fs.readFileSync(indexPath, 'utf8');
   const a = indexHtml.indexOf('// BEGIN PURE LOGIC');
   const b = indexHtml.indexOf('// END PURE LOGIC');
   if (a < 0 || b < 0) throw new Error('Markers BEGIN/END PURE LOGIC missing in index.html');
   const updatedHtml = indexHtml.slice(0, a) + '// BEGIN PURE LOGIC\n' + logicText.trim() + '\n' + indexHtml.slice(b);
-  fs.writeFileSync(indexPath, updatedHtml, 'utf8');
+  return { indexPath, updatedHtml };
 }
 
 const server = http.createServer((req, res) => {
@@ -90,18 +91,27 @@ const server = http.createServer((req, res) => {
       try {
         const data = JSON.parse(body);
         const { id, entryText } = data;
-        if (!id || !entryText) throw new Error('Missing id or entryText');
+        if (data.kind !== 'mini' && (!id || !entryText)) throw new Error('Missing id or entryText');
 
         const logicPath = path.join(ROOT, 'logic.js');
         const logicText = fs.readFileSync(logicPath, 'utf8');
-        const updatedLogic = applyTapEntry(logicText, id, entryText);
+        const updatedLogic = data.kind === 'mini'
+          ? Logic.applyMiniOverride(logicText, data.number, data.level)
+          : applyTapEntry(logicText, id, entryText);
+        const { indexPath, updatedHtml } = prepareIndex(updatedLogic);
 
         fs.writeFileSync(logicPath, updatedLogic, 'utf8');
-        spliceIntoIndex(updatedLogic);
+        try {
+          fs.writeFileSync(indexPath, updatedHtml, 'utf8');
+        } catch (error) {
+          fs.writeFileSync(logicPath, logicText, 'utf8');
+          throw error;
+        }
 
-        console.log(`[Apply] Successfully updated "${id}" into logic.js and index.html`);
+        const target = data.kind === 'mini' ? 'Level ' + data.number : id;
+        console.log(`[Apply] Successfully updated "${target}" into logic.js and index.html`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, message: `Đã ghi đè "${id}" vào logic.js và index.html thành công!` }));
+        res.end(JSON.stringify({ ok: true, message: `Đã ghi đè "${target}" vào logic.js và index.html thành công!` }));
       } catch (err) {
         console.error('[Apply Error]', err.message);
         res.writeHead(400, { 'Content-Type': 'application/json' });

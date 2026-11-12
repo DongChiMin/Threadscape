@@ -620,6 +620,7 @@ canvas.picking { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2
     <select id="src" style="max-width: 220px;" title="Load level"></select>
     <button id="loadBtn" data-i18n="loadBtn">Nạp</button>
     <button id="blankBtn" class="alt" data-i18n="newBlankBtn">Tạo mới</button>
+    <button id="importImageBtn" class="alt tab-btn" data-tab="tabImport" data-i18n="tabImport"></button>
 
     <div style="display:flex;align-items:center;gap:4px;">
       <span style="color:var(--dim);font-size:11px;">W:</span>
@@ -725,7 +726,6 @@ canvas.picking { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2
       <button class="tab-btn active" data-tab="tabSpools">🧵 <span data-i18n="tabSpools">Cuộn chỉ</span></button>
       <button class="tab-btn" data-tab="tabSolution">▶️ <span data-i18n="tabSolution">Lời giải</span></button>
       <button class="tab-btn" data-tab="tabExport">📤 <span data-i18n="tabExport">Áp dụng & Xuất</span></button>
-      <button class="tab-btn" data-tab="tabImport">🖼️ <span data-i18n="tabImport">Nhập ảnh</span></button>
 
     </div>
 
@@ -1255,7 +1255,7 @@ let S = null;
 let testBusy = false;
 let fileBusy = false;
 function updateBusyButtons() {
-  for (const id of ['splitCurrentBtn', 'splitAllBtn', 'runSimBtn', 'loadBtn', 'importJsonBtn', 'pickFilesBtn']) {
+  for (const id of ['splitCurrentBtn', 'splitAllBtn', 'runSimBtn', 'loadBtn', 'importImageBtn', 'importJsonBtn', 'pickFilesBtn']) {
     $(id).disabled = testBusy || fileBusy;
   }
   $('applyServerBtn').disabled = testBusy || fileBusy || !isServerOnline;
@@ -2206,15 +2206,20 @@ async function checkServerStatus() {
   badge.textContent = (currentLang === 'vi') ? '⚪ Chưa bật server (Chạy start_editor.bat)' : '⚪ Server offline';
 }
 
-// Method 1: Local Server 1-Click Apply
-$('applyServerBtn').onclick = exclusiveFileAction(async () => {
-  const msg = $('serverApplyMsg');
-  msg.className = 'toast-msg warn show';
-  msg.textContent = (currentLang === 'vi') ? 'Đang kiểm tra và ghi đè tự động...' : 'Validating and auto-applying...';
-
-  try {
-    if (!S.tap) throw new Error(currentLang === 'vi' ? 'Áp dụng trực tiếp chỉ hỗ trợ tranh Tapestry.' : 'Direct apply only supports Tapestry mode.');
-
+function prepareApply() {
+  if (!S.tap) {
+    const original = S.miniSource;
+    if (!original) throw Error(currentLang === 'vi' ? 'Hãy nạp một màn lẻ trước khi ghi đè.' : 'Load an existing mini-level before overwriting.');
+    const rows = pieceRows(S, 0);
+    const spools = S.spools[0] || '';
+    const sameGrid = original.rows.map(row => row.replaceAll('#', '.').toUpperCase()).join('\n') === rows.join('\n');
+    const level = { name: S.name, rows: sameGrid && spools === original.spools ? original.rows : rows,
+      spools, palette: S.palette, difficultyLabel: S.difficultyLabels?.[0] || null };
+    if (!confirm(currentLang === 'vi' ? 'Ghi đè màn ' + original.number + '?' : 'Overwrite Level ' + original.number + '?')) {
+      throw Error(currentLang === 'vi' ? 'Đã hủy.' : 'Cancelled.');
+    }
+    return { kind: 'mini', number: original.number, level };
+  }
     const pc = pieceCount(S);
     const missing = [];
     for (let i = 0; i < pc; i++) {
@@ -2231,12 +2236,23 @@ $('applyServerBtn').onclick = exclusiveFileAction(async () => {
       if (!conf) throw new Error(currentLang === 'vi' ? 'Đã hủy.' : 'Cancelled.');
     }
 
-    const entryText = exportTapestryText();
+    return { id: thisId, entryText: exportTapestryText() };
+
+}
+
+// Method 1: Local Server 1-Click Apply
+$('applyServerBtn').onclick = exclusiveFileAction(async () => {
+  const msg = $('serverApplyMsg');
+  msg.className = 'toast-msg warn show';
+  msg.textContent = (currentLang === 'vi') ? 'Đang kiểm tra và ghi đè tự động...' : 'Validating and auto-applying...';
+
+  try {
+    const payload = prepareApply();
 
     const res = await fetch(SERVER_URL + '/api/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: thisId, entryText })
+      body: JSON.stringify(payload)
     });
 
     const data = await res.json();
@@ -2293,33 +2309,14 @@ $('applyGameBtn').onclick = exclusiveFileAction(async () => {
   msg.textContent = (currentLang === 'vi') ? 'Đang kiểm tra dữ liệu...' : 'Validating data...';
 
   try {
-    if (!S.tap) throw new Error(currentLang === 'vi' ? 'Áp dụng trực tiếp hiện chỉ hỗ trợ tranh Tapestry.' : 'Apply directly only supports Tapestry mode.');
-
-    const pc = pieceCount(S);
-    const missing = [];
-    for (let i = 0; i < pc; i++) {
-      if (!S.spools[i] || !S.spools[i].trim()) missing.push(i + 1);
-    }
-    if (missing.length) throw new Error((currentLang === 'vi') ? `Mảnh [${missing.join(', ')}] chưa có cuộn chỉ! Bấm "Chia TẤT CẢ các mảnh" trước.` : `Piece(s) [${missing.join(', ')}] have no spools! Run "Split ALL pieces" first.`);
-
-    const thisId = ($('levelTid').value || 'mytap').replace(/[^a-z0-9_]/gi, '');
-    const existingIds = L.makePictures().map(p => p.id);
-    if (existingIds.includes(thisId)) {
-      const conf = confirm((currentLang === 'vi')
-        ? `⚠️ ID "${thisId}" trùng với tranh gốc trong game.\n\nBấm OK để GHI ĐÈ, hoặc Cancel để đổi sang ID khác.`
-        : `⚠️ ID "${thisId}" matches a built-in game tapestry.\n\nClick OK to OVERWRITE, or Cancel to change ID.`);
-      if (!conf) throw new Error(currentLang === 'vi' ? 'Đã hủy.' : 'Cancelled.');
-    }
-
-    const entryText = exportTapestryText();
+    const payload = prepareApply();
 
     const logicFile = await logicHandle.getFile();
-    let logicText = await logicFile.text();
-    logicText = applyTapEntry(logicText, thisId, entryText);
-
-    const lw = await logicHandle.createWritable();
-    await lw.write(logicText);
-    await lw.close();
+    const originalLogic = await logicFile.text();
+    let logicText = originalLogic;
+    logicText = payload.kind === 'mini'
+      ? L.applyMiniOverride(logicText, payload.number, payload.level)
+      : applyTapEntry(logicText, payload.id, payload.entryText);
 
     const indexFile = await indexHandle.getFile();
     let indexText = await indexFile.text();
@@ -2328,9 +2325,20 @@ $('applyGameBtn').onclick = exclusiveFileAction(async () => {
     if (ma < 0 || mb < 0) throw new Error('Không tìm thấy markers BEGIN/END PURE LOGIC trong index.html');
 
     indexText = indexText.slice(0, ma) + '// BEGIN PURE LOGIC\n' + logicText.trim() + '\n' + indexText.slice(mb);
-    const iw = await indexHandle.createWritable();
-    await iw.write(indexText);
-    await iw.close();
+    const lw = await logicHandle.createWritable();
+    await lw.write(logicText);
+    await lw.close();
+
+    try {
+      const iw = await indexHandle.createWritable();
+      await iw.write(indexText);
+      await iw.close();
+    } catch (error) {
+      const rollback = await logicHandle.createWritable();
+      await rollback.write(originalLogic);
+      await rollback.close();
+      throw error;
+    }
 
     msg.className = 'toast-msg ok show';
     msg.textContent = (currentLang === 'vi') ? `✅ Đã áp dụng thành công "${S.name}" vào game!` : `✅ Successfully applied "${S.name}" to game!`;
@@ -2538,7 +2546,14 @@ $('generateFromImgBtn').onclick = () => {
     newPalette[letter] = hexCol(centroids[cIdx]);
   });
 
+  const original = S.miniSource;
+  const label = S.difficultyLabels?.[0];
   S = createBlankState(W, H, S.name);
+  if (original) {
+    S.tap = false;
+    S.miniSource = original;
+    S.difficultyLabels = [label || null];
+  }
   S.palette = newPalette;
   if (bgIdx >= 0) S.background = hexCol(centroids[bgIdx]);
   S.cells = assigned.map((v, i) => (alphas[i] < 60 || v === bgIdx) ? '.' : (colorMap[v] || '.'));
@@ -2577,6 +2592,9 @@ function loadSource(val) {
     S.diff = Math.min(5, Math.max(1, Math.round(lv.number / 4)));
     S.tap = false;
     S.difficultyLabels = [lv.difficultyLabel || null];
+    S.palette = { ...BASE_PALETTE, ...lv.palette };
+    S.miniSource = { number: lv.number, spools: S.spools[0],
+      rows: Array.from({ length: lv.h }, (_, y) => lv.cells.slice(y * lv.w, (y + 1) * lv.w).join('')) };
     S.useBakedMotif = Boolean(L.MOTIFS[lv.number - 2]?.[2]?.bakedSpools);
   } else {
     const p = L.makePictures()[+val.slice(1)];
@@ -2621,7 +2639,7 @@ $('resizeBtn').onclick = () => {
   S.w = nw;
   S.h = nh;
   S.cells = newCells;
-  S.tap = (nw % 8 === 0 && nh % 8 === 0 && nw >= 8 && nh >= 8);
+  S.tap = !S.miniSource && (nw % 8 === 0 && nh % 8 === 0 && nw >= 8 && nh >= 8);
   selectedPiece = 0;
   solCache = null;
   refreshUI(true);
