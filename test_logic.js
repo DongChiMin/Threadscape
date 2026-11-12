@@ -134,6 +134,42 @@ console.log(warn.length?'SOFT WARNINGS:\n - '+warn.join('\n - '):'all soft targe
  console.log('UI dead-end regression checks passed');
 }
 
+// Camera: square board corners stay on the cloth; focus and hit-testing share a transform.
+{
+ const vm=require('node:vm'),html=fs.readFileSync(__dirname+'/index.html','utf8');
+ const layout=html.slice(html.indexOf('function buildCache('),html.indexOf(' const d=view.dpr,PAD='))+'}';
+ const camera=html.slice(html.indexOf('function cellCenter('),html.indexOf('function hexToRgb('));
+ const inverse=html.match(/const toCanvas=.*;/)[0];
+ for(const [w,h] of [[320,568],[390,844],[768,1024],[1280,720],[844,390]])for(const size of [8,10]){
+  const top=64,bottom=h-145,elements={hud:{getBoundingClientRect:()=>({bottom:top})},bottom:{getBoundingClientRect:()=>({top:bottom})},
+   minimap:{hidden:false,getBoundingClientRect:()=>({bottom:125})},tip:{hidden:true,getBoundingClientRect:()=>({bottom:150})}};
+  const level=Logic.parseLevel('Camera',Array(size).fill('B'.repeat(size)),1),view={w,h,zoom:1,panX:0,panY:0};
+  const ctx={level,view,screen:'game',parked:null,settings:{reduced:false},CONFIG:{cameraZoom:1.6},$:id=>elements[id],clamp:(v,a,b)=>Math.max(a,Math.min(b,v))};
+  vm.createContext(ctx);vm.runInContext(layout+camera+inverse,ctx);ctx.buildCache();
+  for(const x of [view.gx,view.gx+size*view.cell])for(const y of [view.gy,view.gy+size*view.cell])
+   assert(Math.hypot(x-view.cx,y-view.cy)<=view.r-28.99,'grid corner has cloth margin');
+  for(const focused of [false,true]){
+   ctx.parked=focused?{spool:{color:'B'}}:null;
+   for(let frame=0;frame<90;frame++){
+    ctx.updateCamera(1/60);const b=ctx.cameraBounds(),safe=ctx.cameraSafeRect();
+    const project=(x,y)=>({x:view.cx+view.panX+(x-view.cx)*view.zoom,y:view.cy+view.panY+(y-view.cy)*view.zoom});
+    for(const x of [b.left,b.right])for(const y of [b.top,b.bottom]){const p=project(x,y);
+     assert(p.x>=safe.left-1e-6&&p.x<=safe.right+1e-6&&p.y>=safe.top-1e-6&&p.y<=safe.bottom+1e-6,'colour fits throughout zoom');}
+    const p=project(ctx.cellCenter(size*size-1).x,ctx.cellCenter(size*size-1).y);
+    assert.equal(ctx.pointerCell(p.x,p.y),size*size-1,'hit test follows camera');
+   }
+  }
+  // Switch focus to an edge region, show a tip, then restore the whole board.
+  level.cells=level.cells.map((_,i)=>i%size>=size-2?'R':'B');ctx.parked={spool:{color:'R'}};elements.tip.hidden=false;
+  for(let frame=0;frame<90;frame++)ctx.updateCamera(1/60);
+  const b=ctx.cameraBounds(),safe=ctx.cameraSafeRect();
+  assert(view.cx+view.panX+(b.right-view.cx)*view.zoom<=safe.right+1e-6);
+  assert(view.cy+view.panY+(b.top-view.cy)*view.zoom>=safe.top-1e-6);
+  ctx.parked=null;ctx.settings.reduced=true;ctx.updateCamera(1/60);assert(view.zoom<=1);
+ }
+ console.log('Camera fit and hit-testing checks passed on 5 viewport sizes');
+}
+
 // 4. index.html carries the same logic block
 if(fs.existsSync(__dirname+'/index.html')){const html=fs.readFileSync(__dirname+'/index.html','utf8'),blk=html.split('// BEGIN PURE LOGIC')[1]?.split('// END PURE LOGIC')[0];
  console.log(blk&&blk.trim()===src.trim()?'index.html logic block is in sync':'WARNING: index.html logic block differs from logic.js - run node build.js')}
