@@ -1,4 +1,4 @@
-# Brief for Codex: polish visuals / animation / audio of Stitch Path (PO owns logic)
+# Brief for Codex: polish visuals / animation / audio of Threadscape (PO owns logic)
 
 Context: SPEC.md is the full spec. index.html already runs end to end.
 RULES OF ENGAGEMENT

@@ -1,4 +1,4 @@
-# Stitch Path
+# Threadscape
 
 A single-file mobile embroidery puzzle prototype (HTML + vanilla JS, no dependencies).
 

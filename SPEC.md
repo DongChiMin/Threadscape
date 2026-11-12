@@ -1,4 +1,4 @@
-# TASK: Build a playable single-file HTML prototype of "Stitch Path" (mobile embroidery puzzle)
+# TASK: Build a playable single-file HTML prototype of "Threadscape" (mobile embroidery puzzle)
 
 Goal of this prototype: let a player FEEL the full ASMR + visual experience of stitching a picture, while also testing puzzle difficulty. Game feel is the #1 priority. Do not ask questions; decide sensibly and list assumptions at the end. Do not add features that are not listed.
 
