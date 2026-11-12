@@ -3,6 +3,23 @@ const src=fs.readFileSync(__dirname+'/logic.js','utf8');
 const Logic=Function(src+'\nreturn Logic')();
 const t0=Date.now();
 
+// Moon 3/8: equal remaining cell/spool totals can still have no valid paths.
+{
+ const pic=Logic.makePictures().find(p=>p.id==='moon'),i=2;
+ const lv=Logic.levelFromBaked(pic.first+i,'Moon 3/8',pic.piece(i),pic.baked[i]);
+ const spools=lv.spools.map(s=>({...s})),spool=spools.find(s=>s.color==='B'&&s.length===4);
+ for(const path of [[18,26,34,42],[18,26,34,33]]){
+  spool.done=true;
+  const state=Logic.makeState(lv,new Set(path),spools),info=Logic.strandInfo(state,'B');
+  assert.equal(Logic.solveColor(state,'B').status,'unsolvable');
+  assert.equal(info.kind,path.at(-1)===42?'shape':'size');
+  assert.deepEqual(info.lens,[15,11]);
+  assert.deepEqual(info.groups.map(g=>g.length),info.sizes);
+  assert.deepEqual(info.groups.flat().sort((a,b)=>a-b),info.cells.slice().sort((a,b)=>a-b));
+  assert.equal(info.cells.length,26);
+ }
+}
+
 // 1. Level 1 fixture (spec section 3)
 const fx=Logic.parseLevel(Logic.FIXTURE.name,Logic.FIXTURE.rows,1);
 fx.spools=Logic.FIXTURE.spools.map((s,id)=>({...s,id,done:false}));

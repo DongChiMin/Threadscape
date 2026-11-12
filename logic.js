@@ -204,12 +204,12 @@ const Logic=(()=>{
   return seen.size}
  // after a spool is committed: which remaining cells of that colour can no longer be finished?
  function strandInfo(state,color){const {level}=state,A=adj(level.w,level.h),cs=remaining(state,color),lens=lengths(state,color),rem=new Uint8Array(level.w*level.h);
-  cs.forEach(c=>rem[c]=1);const seen=new Set(),bad=[];
+  cs.forEach(c=>rem[c]=1);const seen=new Set(),bad=[],groups=[];
   for(const f of cs){if(seen.has(f))continue;const comp=[f];seen.add(f);
    for(let k=0;k<comp.length;k++)for(const y of A[comp[k]])if(rem[y]&&!seen.has(y)){seen.add(y);comp.push(y)}
-   if(!canSum(comp.length,lens))bad.push(comp)}
+   groups.push(comp);if(!canSum(comp.length,lens))bad.push(comp)}
   if(bad.length)return{kind:lens.length?'size':'nospool',cells:bad.flat(),sizes:bad.map(b=>b.length),lens,groups:bad};
-  return{kind:'shape',cells:cs,sizes:[cs.length],lens}}
+  return{kind:'shape',cells:cs,sizes:groups.map(g=>g.length),lens,groups}}
 
  // ---- tapestries: each 8-column block is a playable piece ----
  const PIECE=8;

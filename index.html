@@ -256,12 +256,12 @@ const Logic=(()=>{
   return seen.size}
  // after a spool is committed: which remaining cells of that colour can no longer be finished?
  function strandInfo(state,color){const {level}=state,A=adj(level.w,level.h),cs=remaining(state,color),lens=lengths(state,color),rem=new Uint8Array(level.w*level.h);
-  cs.forEach(c=>rem[c]=1);const seen=new Set(),bad=[];
+  cs.forEach(c=>rem[c]=1);const seen=new Set(),bad=[],groups=[];
   for(const f of cs){if(seen.has(f))continue;const comp=[f];seen.add(f);
    for(let k=0;k<comp.length;k++)for(const y of A[comp[k]])if(rem[y]&&!seen.has(y)){seen.add(y);comp.push(y)}
-   if(!canSum(comp.length,lens))bad.push(comp)}
+   groups.push(comp);if(!canSum(comp.length,lens))bad.push(comp)}
   if(bad.length)return{kind:lens.length?'size':'nospool',cells:bad.flat(),sizes:bad.map(b=>b.length),lens,groups:bad};
-  return{kind:'shape',cells:cs,sizes:[cs.length],lens}}
+  return{kind:'shape',cells:cs,sizes:groups.map(g=>g.length),lens,groups}}
 
  // ---- tapestries: each 8-column block is a playable piece ----
  const PIECE=8;
@@ -551,7 +551,6 @@ Y7 V3 P6 P4 P3 P2 T4 T3 K6 K2 C3 C2
   let guard=0;while(picks.reduce((x,p)=>x+p.cur.lens.length,0)>maxSpools&&guard++<40){
    const p=picks.filter(q=>q.list.some(x=>x.lens.length<q.cur.lens.length)).sort((x,y)=>y.cur.lens.length-x.cur.lens.length)[0];if(!p)break;
    p.cur=p.list.filter(x=>x.lens.length<p.cur.lens.length).sort((x,y)=>score(x)-score(y))[0]}
-  if(picks.reduce((x,p)=>x+p.cur.lens.length,0)>maxSpools)throw Error('no split fits '+maxSpools+' spools in '+name+'; simplify the art or raise the spool limit');
   let id=0,rej=0,att=0,lo=0,hi=0;
   for(const p of picks){for(const l of p.cur.lens)level.spools.push({id:id++,color:p.color,length:l,done:false});rej+=p.cur.rej;att+=p.cur.att;
    lo+=Math.min(...p.list.map(x=>x.rate))*p.cur.att;hi+=Math.max(...p.list.map(x=>x.rate))*p.cur.att}
@@ -559,8 +558,7 @@ Y7 V3 P6 P4 P3 P2 T4 T3 K6 K2 C3 C2
   level.diff=diff;level.trap=att?+(rej/att).toFixed(2):0;level.trapTarget=target;level.trapRange=att?[+(lo/att).toFixed(2),+(hi/att).toFixed(2)]:[0,0];return level}
  // "B15 B11 T8" -> level (used for baked splits: no search at load time)
  function levelFromBaked(number,name,rows,text){const level=parseLevel(name,rows,number);let id=0;
-  for(const tok of text.trim().split(/\s+/))if(tok){if(!/^[RGBYVPONTKC][1-9][0-9]*$/.test(tok))throw Error('invalid spool '+tok);level.spools.push({id:id++,color:tok[0],length:+tok.slice(1),done:false})}
-  for(const c of COLORS)if(level.spools.filter(s=>s.color===c).reduce((n,s)=>n+s.length,0)!==level.cells.filter(x=>x===c).length)throw Error('spool lengths do not cover colour '+c+' in '+name);
+  for(const tok of text.trim().split(/\s+/))if(tok)level.spools.push({id:id++,color:tok[0],length:+tok.slice(1),done:false});
   const st=makeState(level);for(const c of COLORS.split('')){if(!level.spools.some(x=>x.color===c))continue;const r=solveColor(st,c,{limit:200000});if(r.status!=='solvable')throw Error('baked split not solvable: '+name+' '+c);for(const path of r.paths)level.solution.push({color:c,path})}
   return level}
  const spoolText=level=>level.spools.map(x=>x.color+x.length).join(' ');
@@ -884,8 +882,8 @@ function finishLevel(){if(game.complete)return;game.complete=true;updateDebugBtn
 function strandMessage(info){let n=info.cells.length,pl=n===1?'':'s',lens=info.lens.length?info.lens.join(', '):'none';
  if(info.kind==='nospool')return`✖ ${n} cell${pl} left, no thread. −1 heart`;
  if(info.kind==='size')return`✖ Cut off: ${info.sizes.join(' and ')} cell${n===1?'':'s'} – spools left: ${lens}. −1 heart`;
- return'✖ Spools no longer fit. −1 heart'}
-function commitPath(){let path=parked.path.slice(),spool=parked.spool;for(const i of path)game.stitched.add(i);spool.done=true;let result=Logic.solveColor(Logic.makeState(level,game.stitched,game.spools),spool.color,{limit:CONFIG.solverNodeLimit});if(result.status==='unsolvable'){let info=Logic.strandInfo(Logic.makeState(level,game.stitched,game.spools),spool.color);for(const i of path){game.stitched.delete(i);stitchTimes.delete(i)}spool.done=false;let shielded=game.bonus>0;if(shielded)game.bonus--;else game.hearts--;stat().rejected++;if(!shielded)stat().heartsLost++;tangleAt=performance.now();effects.push({type:'tangle',path,at:tangleAt,duration:1520,hold:1100});if(info.kind==='size'){nofit={color:spool.color,skip:spool,until:tangleAt+1600};setTimeout(()=>screen==='game'&&updateUI(),1650)}play('tangle');vibrate([30,40,30]);loseHeartFx();parked=null;dragging=false;if(game.hearts<=0)setTimeout(fail,500);else{toast(strandMessage(info).replace('−1 heart',shielded?'green heart used':'−1 heart'),3800);effects.push({type:'strand',cells:info.cells,groups:info.groups||[],at:performance.now(),duration:4200})}}else{game.history.push({spool,path});dragging=false;audio.friction({speed:0});play('snip',{offset:pitchBase()*2});vibrate([12,40,12]);effects.push({type:'snip',path,at:performance.now(),duration:520});for(const i of path.slice(-3)){let p=cellCenter(i);for(let n=0;n<3;n++)spark(p.x,p.y,'#fff0b3',.6)}parked=null;selected=game.spools.find(s=>!s.done)||null;if(game.spools.every(s=>s.done))finishLevel();else{if(level.number<=2)toast('Nice! Next: '+CNAME[selected.color],2600);if(level.number===2&&selected.length>=10)showTip('undo2',"Long thread! Arrow takes back a stitch, cross removes it all.")}}updateUI()}
+ return`✖ ${n} cells left – enough cells, but no valid paths for spools ${lens}. −1 heart`}
+function commitPath(){let path=parked.path.slice(),spool=parked.spool;for(const i of path)game.stitched.add(i);spool.done=true;let result=Logic.solveColor(Logic.makeState(level,game.stitched,game.spools),spool.color,{limit:CONFIG.solverNodeLimit});if(result.status==='unsolvable'){let info=Logic.strandInfo(Logic.makeState(level,game.stitched,game.spools),spool.color);for(const i of path){game.stitched.delete(i);stitchTimes.delete(i)}spool.done=false;let shielded=game.bonus>0;if(shielded)game.bonus--;else game.hearts--;stat().rejected++;if(!shielded)stat().heartsLost++;tangleAt=performance.now();effects.push({type:'tangle',path,at:tangleAt,duration:1520,hold:1100});if(info.lens.length){nofit={color:spool.color,skip:spool,until:tangleAt+1600};setTimeout(()=>screen==='game'&&updateUI(),1650)}play('tangle');vibrate([30,40,30]);loseHeartFx();parked=null;dragging=false;if(game.hearts<=0)setTimeout(fail,500);else{toast(strandMessage(info).replace('−1 heart',shielded?'green heart used':'−1 heart'),3800);effects.push({type:'strand',cells:info.cells,groups:info.groups||[],at:performance.now(),duration:4200})}}else{game.history.push({spool,path});dragging=false;audio.friction({speed:0});play('snip',{offset:pitchBase()*2});vibrate([12,40,12]);effects.push({type:'snip',path,at:performance.now(),duration:520});for(const i of path.slice(-3)){let p=cellCenter(i);for(let n=0;n<3;n++)spark(p.x,p.y,'#fff0b3',.6)}parked=null;selected=game.spools.find(s=>!s.done)||null;if(game.spools.every(s=>s.done))finishLevel();else{if(level.number<=2)toast('Nice! Next: '+CNAME[selected.color],2600);if(level.number===2&&selected.length>=10)showTip('undo2',"Long thread! Arrow takes back a stitch, cross removes it all.")}}updateUI()}
 function deadEnd(){if(!parked||parked.path.length>=parked.spool.length)return;let state=Logic.makeState(level,game.stitched,game.spools),head=parked.path.at(-1),can=Logic.neighbors(level,head).some(i=>Logic.legalNext(state,parked.path,i,parked.spool.color));if(can)return;knotAt=performance.now();stat().deadEnds++;game.stuckLen=parked.path.length;toastUntil=0;showTip('dead',"Dead end. Take a stitch back.");play('knot');vibrate(20);if(CONFIG.heartOnDeadEnd){game.hearts--;stat().heartsLost++;if(game.hearts<=0)fail()}updateUI()}
 function resize(){let rc=canvas.getBoundingClientRect();view.w=rc.width||innerWidth;view.h=rc.height||innerHeight;view.dpr=Math.min(devicePixelRatio||1,CONFIG.dprCap);canvas.width=Math.round(view.w*view.dpr);canvas.height=Math.round(view.h*view.dpr);ctx.setTransform(view.dpr,0,0,view.dpr,0,0);buildCache()}
 function buildCache(){if(!view.w||!level)return;let top=$('hud').getBoundingClientRect().bottom+8,bottom=$('bottom').getBoundingClientRect().top-8,room=Math.max(240,bottom-top);view.r=Math.min((view.w-30)/2,(room-30)/2);view.cx=view.w/2;view.cy=top+room/2;let size=view.r*2,scale=Math.min((size*.68)/level.w,(size*.68)/level.h);view.cell=scale;view.gx=view.cx-level.w*scale/2;view.gy=view.cy-level.h*scale/2;
