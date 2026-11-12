@@ -248,7 +248,7 @@
   ['Potted Poppy',['..RR...','.RRRR..','.ROOR..','..GG...','.GGGTT.','GGGTTT.','..GG...','.OOOOO.','..NNN..','..NNN..'],{pre:.08}],
   ['Longneck',['.TTTT....','.TTTT....','.GGKKG...','.GGGGG...','.GG......','.GGYY....','.GGYYGG..','.TTTTTTT.','..TTTTTT.','..TT.TT..'],{pre:.08}],
   ['Desert Cactus',['...GG...','...GG...','.T.GG.G.','TT.GG.GG','TTGGGGGG','.TGGGGG.','...GG...','.OOOOOO.','..NNNN..','..NNNN..'],{pre:.08}],
-  ['Pink Camellia',['GG.PP...','GGPPPP..','.PPCCPP.','RRRYYRRR','RRRYYRRR','.PPCCPP.','..PPPPGG','...PP.GG'],{pre:.08}],
+  ['Pink Camellia',['..PPPP..','.PPPPPP.','PPPPPPPP','PPPCCPPP','PPPPPPPP','.PPPPPP.','..PPPP..','...GG...'],{difficultyLabel:'hard',bakedSpools:'P16 P14 P12 C2 G2'}],
   ['Honey Jar',['..NNNN..','.NNNNNN.','.YYYYYY.','.YYYYYY.','OOOCCOOO','OOOCCOOO','.YYYYYY.','.YYYYYY.','..NNNN..'],{pre:.08}],
   ['Hanging Ivy',['...NN...','..NNNN..','.NN..NN.','NN....NN','GGTTTTGG','GGTTTTGG','.GTTTTG.','.OOCCOO.','.OOCCOO.','..OOOO..'],{pre:.24}],
   ['Ladybug',['...KK...','..KKKK..','.RRKKRR.','RRRKKRRR','ROOKKOOR','ROOKKOOR','.OOKKOO.','..KKKK..'],{pre:.24}],
@@ -256,9 +256,9 @@
   ['Potted Tulip',['..RR.RR..','..RRRRR..','..RPPRR..','...PP....','...GG....','.TTGGTT..','TTTGGTTT.','.TTGGTT..','.OOOOOOO.','..ONNNO..','..ONNNO..','...NNN...'],{pre:.08}],
   ['Leafy Fern',['......GG..','.TT..GGG..','..TT.GG...','..TTTGG...','.TTTTGGGG.','..TTTGGGGG','...TTGGGG.','...OOOO...','..OOOOOO..','...NNNN...','#..NNNN..#','....#.....'],{torn:0,pre:.20}],
   ['Garden Snail',['...NNN....','..NNNNN...','.NNOOONN..','.NNOOONN..','.NNOOON.GG','..NNNN.GKK','#TTTTTTGGG','TTTTTTGGG.','.GGGGGGG.#','..GGGG.#..'],{torn:0,pre:.16}],
-  ['Flower Basket',['..CC..PP..','.CCCCPPPP.','.CCCCPPPP.','..GGGGGG..','.RRGGGGCC.','RRRGGGCCCC','.RRGGGCCC.','..NNNNNN..','.OOOOOOOO.','#.OOOOOO.#','...NNNN#..'],{torn:0,pre:.04}],
+  ['Flower Basket',['..CC..PP..','.CCCCPPPP.','.CCCCPPPP.','..OOOOOO..','.OOOOOOOO.','.OONNOOOO.','.OOOOOOOO.','..OONOOO..','..OOOOOO..','...OOOO...'],{difficultyLabel:'hard',bakedSpools:'O18 O15 O10 C10 P10 N2 N1'}],
   ['Watering Can',['......GG..','.....GGGG.','..TT.GG.GG','.TTT.GG.GG','TTTTBBBBG.','.TTTBBBB..','.TTTBBBBB.','#..BBBBBB.','...BBBBBB#','...TTTT#..'],{torn:0,pre:.04}],
-  ['Terrarium',['...NNNN...','..NNNNNN..','.CTTTTTCC.','.CTTTTTCC.','.CGGGGGCC.','.CGGYYGCC.','.CGGYYGCC.','.CTTTTTCC.','#ONNNNNO.#','.ONNNNNO#.'],{torn:0,pre:.08}]];
+  ['Terrarium',['...NNNN...','..NNNNNN..','.TTTTTTTT.','.TTTTTTTT.','.TTGGTTTT.','.TTGGTTTT.','.TTTTTTTT.','.TTTTTTTT.','..NNNNNN..','...NNNN...'],{difficultyLabel:'hard',bakedSpools:'T25 T11 T8 N10 N10 G4'}]];
  function parseLevel(name,rows,number){const w=Math.max(...rows.map(r=>r.length)),cells=[];for(const row of rows)for(let c=0;c<w;c++){const ch=row[c]||'.';cells.push(COLORS.includes(ch)||ch==='#'?ch:'.')}
   return{number,name,w,h:rows.length,cells,spools:[],solution:[],prestitch:new Set()}}
  // randomized self-avoiding walks (Warnsdorff-style) that tile one color's cells; null if min length cannot be met
@@ -289,8 +289,8 @@
    paths.sort((a,b)=>b.length-a.length);for(const path of paths){level.spools.push({id:id++,color,length:path.length,done:false});level.solution.push({color,path})}}
   return level}
  function generateLevels(){
-  const levels=[parseLevel(FIXTURE.name,FIXTURE.rows,1)];levels[0].spools=FIXTURE.spools.map((s,id)=>({...s,id,done:false}));levels[0].solution=solve(makeState(levels[0]))||[];
-  for(let n=2;n<=20;n++){const [name,rows,extra]=MOTIFS[n-2],cfg={...DIFFICULTY.find(t=>n<=t.to),...extra};levels.push(bestLevel(n,name,rows,cfg,n))}
+  const levels=[parseLevel(FIXTURE.name,FIXTURE.rows,1)];levels[0].difficultyLabel=FIXTURE.difficultyLabel;levels[0].spools=FIXTURE.spools.map((s,id)=>({...s,id,done:false}));levels[0].solution=solve(makeState(levels[0]))||[];
+  for(let n=2;n<=20;n++){const [name,rows,extra]=MOTIFS[n-2],cfg={...DIFFICULTY.find(t=>n<=t.to),...extra};const level=extra?.bakedSpools ? levelFromBaked(n,name,rows,extra.bakedSpools) : bestLevel(n,name,rows,cfg,n);level.difficultyLabel=extra?.difficultyLabel;levels.push(level)}
   return levels}
  // best of cfg.cands random partitions; tn = "difficulty level number" that drives the bot-fail target
  function bestLevel(n,name,rows,cfg,tn){let best=null,bestScore=Infinity;
@@ -321,21 +321,21 @@
  const PIECE=8;
  const TAPESTRY_CFG={minLen:2,prefLen:3,kmin:1,kmax:1,torn:0,cands:10,botRuns:6};
  const TAP=[
-  {id:'duck',name:'Duck Pond',short:'Duck',background:'#43d5dc',palette:{B:'#16a8e0',C:'#f3f8f9',G:'#22cfe1',K:'#136778',O:'#cfe5eb',P:'#9bdeef',T:'#e0714b'},diff:1,diffs:[2,1,1,1,2,1,1,1,1],cfg:{},art:`
-BBBBBBBB GGGGBBBB BBBBBBBB
-BBBBGGGG GGGGGGGB BBBBBBBB
-B.BBBGGG GGGGGGGG GGBBBBBB
-BGGBBGGG GBBBGGGG .GGGGBBB
-BBBB.... BBB...CC CG.....B
-..BBBBB. B.B.GCCC CCG.GGG.
-BBBBBCCC CB..CCCC KCT...G.
+  {id:'duck',name:'Duck Pond',short:'Duck',background:'#43d5dc',palette:{B:'#16a8e0',C:'#f3f8f9',K:'#136778',O:'#cfe5eb',T:'#e0714b'},diff:1,diffs:[2,1,1,1,2,1,1,1,1],cfg:{},art:`
+BBBBBBBB ....BBBB BBBBBBBB
+BBBB.... .......B BBBBBBBB
+B.BBB... ........ ..BBBBBB
+B..BB... .BBB.... .....BBB
+BBBB.... BBB...CC C......B
+..BBBBB. B.B..CCC CC......
+BBBBBCCC CB..CCCC KCT.....
 .BBCCBBB B...CCCC CCTT....
 BBB..... ....CCCC C.......
 ........ .....CCC CC......
 CC.CCC.. ...CCCCC CCC.....
-C..CCCCC CCCCCCCC OCCP....
-C...CCCC CCCCCCCC OCCP....
-C...CCCC CCCCCOOO OCCP..C.
+C..CCCCC CCCCCCCC OCC.....
+C...CCCC CCCCCCCC OCC.....
+C...CCCC CCCCCOOO OCC...C.
 .....CCC CCCCCCCC CCO...C.
 BBB.TTCC CCCOOOCC OO.....C
 .BBTTT.. .TCCCCOO .......C
@@ -347,12 +347,12 @@ BCCB.CCC BBBBBBBC CCBBB...
 BBBB.... BBBBCCCC BBBBBB..
 BBBBBBBB BBBBBB.. BBB.BBB.
 `,spools:`
-G10 G2 B28 B4 B3 B2 B1 C3 C2
-G23 G1 G1 B7 B3 B2 B1 B1 B1 C13 C1
-G4 G4 G2 G1 G1 B25 B1 T3 K1 C6
+B16 B10 B6 B3 B2 B1 C3 C2
+B4 B2 B2 B2 B2 B1 B1 B1 C12 C1 C1
+B17 B9 T3 K1 C6
 B3 B3 T2 C21 C5
-O3 O2 O1 C16 C14 C9 C4 C3
-P3 O3 O2 O1 C12 C2 C1 C1 C1
+O3 O3 C36 C7 C3
+O3 O2 O1 C6 C4 C3 C2 C1 C1
 B7 B6 B2 B2 B1 T3 T1 T1 C5 C3 C3 C1
 B20 B8 B3 B1 B1 O2 T5 T3 C5 C4 C3 C1
 B6 B6 B5 B3 B3 B3 B1 B1 B1 C7 C2 C1
@@ -592,13 +592,32 @@ Y7 V3 P6 P2 P1 P1 P1 P1 T4 T1 K3 K2 C2 C2 C1 C1 C1 C1 C1
   const {diff=3,seed=1,name='Level',number=0,minLen=2,maxSpools=12,cands=24,runs=8,preferLongSpools=false}=o,target=o.target??TRAP_TARGET[diff],rng=mulberry32(seed*7919+diff*31+5);
   const level=parseLevel(name,rows,number),A=adj(level.w,level.h),colors=COLORS.split('').filter(c=>level.cells.includes(c)),picks=[];
   for(const color of colors){const cs=level.cells.map((x,i)=>x===color?i:-1).filter(i=>i>=0),comps=colorComps(A,cs),seen=new Map();
+   const measure=(lens,paths,random)=>{
+    if(!o.routeDifficulty){
+     const [rej,att]=trapCount(level,color,lens,random,runs);
+     return {lens,rej,att,rate:att?rej/att:0};
+    }
+    // Count steps with more than one available direction along a valid cover.
+    const remaining=new Set(cs);
+    let choices=0,steps=0;
+    for(const path of paths){
+     for(let i=0;i<path.length;i++){
+      remaining.delete(path[i]);
+      if(i===path.length-1)continue;
+      steps++;
+      if(A[path[i]].filter(next=>remaining.has(next)).length>1)choices++;
+     }
+    }
+    return {lens,rej:0,att:0,rate:0,choices:steps?choices/steps:0};
+   };
    const t0=Date.now();for(let c=0;c<cands;c++){if(c>2&&seen.size&&Date.now()-t0>(o.budgetMs??1200))break;let lens=[];const mode=c%6;
     for(const comp of comps){const n=comp.length,kmax=Math.max(1,Math.min(7,n/minLen|0)),kmin=Math.min(kmax,Math.ceil(n/(o.maxSpoolLen??22)));
      const k=mode===0?1:mode===1?Math.min(2,kmax):mode===2?kmax:1+(rng()*kmax|0),sp=randSplit(n,Math.max(kmin,Math.min(k,kmax)),minLen,rng)||[n];lens=lens.concat(sp)}
     lens.sort((x,y)=>y-x);const key=lens.join();if(seen.has(key))continue;
     const spools=lens.map((l,i)=>({id:i,color,length:l,done:false}));
-    if(solveColor(makeState(level,new Set(),spools),color,{limit:8000}).status!=='solvable'){seen.set(key,null);continue}
-    const [rej,att]=trapCount(level,color,lens,rng,runs);seen.set(key,{lens,rej,att,rate:att?rej/att:0})}
+    const result=solveColor(makeState(level,new Set(),spools),color,{limit:8000});
+    if(result.status!=='solvable'){seen.set(key,null);continue}
+    seen.set(key,measure(lens,result.paths,rng))}
    let list=[...seen.values()].filter(Boolean);
    // Add balanced and long-with-short-tail candidates without displacing the
    // original search or consuming its random stream for subsequent colours.
@@ -609,16 +628,20 @@ Y7 V3 P6 P2 P1 P1 P1 P1 T4 T1 K3 K2 C2 C2 C1 C1 C1 C1 C1
       lens=lens.concat(n<count*minLen?[n]:Array.from({length:count},(_,i)=>c%2===0?Math.floor(n/count)+(i<n%count?1:0):i===0?n-(count-1)*minLen:minLen))}
      lens.sort((a,b)=>b-a);const key=lens.join();if(seen.has(key))continue;
      const result=solveCells(level.w,level.h,cs,lens,8000);if(result.status!=='solvable')continue;
-     const [rej,att]=trapCount(level,color,lens,extraRng,runs),entry={lens,rej,att,rate:att?rej/att:0};seen.set(key,entry);list.push(entry)
+     const entry=measure(lens,result.paths,extraRng);seen.set(key,entry);list.push(entry)
     }
    }
    // fallback: spools cut from random walks always tile the colour (blobby regions often have no Hamiltonian-path split)
-   for(let t=0;!list.length&&t<40;t++){const paths=partition(A,cs,rng,{minLen,prefLen:preferLongSpools?Math.max(3,minLen):minLen,kmin:1,kmax:Math.max(2,Math.ceil(cs.length/5)),torn:0});if(!paths)continue;const lens=paths.map(p=>p.length).sort((x,y)=>y-x),key=lens.join();if(seen.has(key))continue;const [rej,att]=trapCount(level,color,lens,rng,runs);const e={lens,rej,att,rate:att?rej/att:0};seen.set(key,e);list.push(e)}
+   for(let t=0;!list.length&&t<40;t++){const paths=partition(A,cs,rng,{minLen,prefLen:preferLongSpools?Math.max(3,minLen):minLen,kmin:1,kmax:Math.max(2,Math.ceil(cs.length/5)),torn:0});if(!paths)continue;const lens=paths.map(p=>p.length).sort((x,y)=>y-x),key=lens.join();if(seen.has(key))continue;const e=measure(lens,paths,rng);seen.set(key,e);list.push(e)}
    if(!list.length)throw Error('no valid split for colour '+color+' in '+name+' (check for isolated single cells)');
    picks.push({color,list,cur:null})}
   // Editor ranks lexicographically: fewer tiny spools, fewer total spools, then
   // trap target. A noisy trap estimate must never reward fragmenting a good path.
-  const compare=(a,b)=>preferLongSpools
+  const routeTarget={easy:0,medium:.25,hard:1}[o.routeDifficulty];
+  const routeScore=x=>Math.abs(x.choices-routeTarget)+x.lens.length*.035;
+  const compare=(a,b)=>o.routeDifficulty
+   ?(o.routeDifficulty==='easy'?0:a.lens.filter(n=>n<=2).length-b.lens.filter(n=>n<=2).length)||routeScore(a)-routeScore(b)
+   :preferLongSpools
    ?a.lens.filter(n=>n<=2).length-b.lens.filter(n=>n<=2).length||a.lens.length-b.lens.length||Math.abs(a.rate-target)-Math.abs(b.rate-target)
    :score(a)-score(b);
   const score=x=>Math.abs(x.rate-target)+x.lens.length*.002+Math.max(0,x.lens[0]-24)*.006;
@@ -642,7 +665,7 @@ Y7 V3 P6 P2 P1 P1 P1 P1 T4 T1 K3 K2 C2 C2 C1 C1 C1 C1 C1
   for(const pic of makePictures(first))for(let i=0;i<pic.count;i++){const n=pic.first+i,name=pic.name+' '+(i+1)+'/'+pic.count,rows=pic.piece(i),diff=pic.diffs?.[i]??pic.diff??3,baked=pic.baked?.[i];
    const lv=baked?levelFromBaked(n,name,rows,baked):splitLevel(rows,{diff,seed:n,name,number:n});
    if(baked)lv.diff=diff;
-   Object.assign(lv,{hearts:DIFF_HEARTS[diff],pic:pic.id,picName:pic.name,picShort:pic.short,piece:i,pieces:pic.count,px:i%pic.cols,py:i/pic.cols|0,cols:pic.cols});out.push(lv)}
+   Object.assign(lv,{difficultyLabel:pic.difficultyLabels?.[i],hearts:DIFF_HEARTS[diff],pic:pic.id,picName:pic.name,picShort:pic.short,piece:i,pieces:pic.count,px:i%pic.cols,py:i/pic.cols|0,cols:pic.cols});out.push(lv)}
   return out}
 
  return{trapCount,colorComps,adj,splitLevel,levelFromBaked,spoolText,TRAP_TARGET,DIFF_NAME,DIFF_HEARTS,COLORS,regionSize,strandInfo,makePictures,generateTapestry,DIFFICULTY,mulberry32,makeState,neighbors,cell,remaining,lengths,solveCells,solveColor,solve,isSolvable,legalNext,validStarts,analyzeSpool,countPartitions,botSim,humanSim,failTarget,pathStatus,autoRun,autoStitch,ASSIST,FIXTURE,MOTIFS,parseLevel,generateLevels,metrics};

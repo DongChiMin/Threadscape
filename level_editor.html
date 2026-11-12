@@ -324,6 +324,11 @@ canvas {
   color: #fff;
   box-shadow: 0 0 10px rgba(233,164,109,.3);
 }
+.piece-tile { width:72px; height:54px; }
+.piece-difficulty { font-size:10px; white-space:nowrap; }
+.piece-difficulty.easy { color:var(--ok); }
+.piece-difficulty.medium { color:var(--warn); }
+.piece-difficulty.hard { color:var(--bad); }
 .piece-tile .dot {
   width: 6px;
   height: 6px;
@@ -577,6 +582,7 @@ header { padding:8px 14px; gap:8px; flex-shrink:0; }
 .drawing-options { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
 .canvas-actions { position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:6px; z-index:4; }
 .canvas-icon { width:32px; height:32px; min-height:32px; padding:0; justify-content:center; }
+.canvas-icon[aria-pressed="true"] { border-color:var(--acc); color:var(--acc); }
 .canvas-help .help-trigger { width:32px; height:32px; background:var(--surface-2); }
 .canvas-help [role=tooltip] { top:38px; }
 .canvas-help:focus-within [role=tooltip] { display:none; }
@@ -682,6 +688,7 @@ canvas.picking { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2
       <div class="canvas-actions">
         <span class="help-tip canvas-help"><button type="button" class="help-trigger" aria-label="Hướng dẫn" data-i18n-title="canvasHelpTitle" aria-describedby="canvasHelpTip">?</button><span id="canvasHelpTip" role="tooltip" data-i18n="canvasHelp"></span></span>
         <button id="fitCanvasBtn" type="button" class="canvas-icon alt" data-i18n-title="fitCanvas" title="Vừa khung" aria-label="Vừa khung"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></button>
+        <button id="toggleCanvasBackgroundBtn" type="button" class="canvas-icon alt" data-i18n-title="toggleCanvasBackground" title="Màu nền bàn vẽ" aria-label="Màu nền bàn vẽ" aria-pressed="true">◩</button>
       </div>
       <canvas id="cv"></canvas>
     </div>
@@ -753,6 +760,24 @@ canvas.picking { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2
         <span class="help-tip"><button type="button" class="help-trigger" aria-label="Roll & Test help" aria-describedby="rollHelp">?</button><span role="tooltip" id="rollHelp" data-i18n="simDesc"></span></span>
       </div>
 
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <label for="difficultyLabel" data-i18n="gameDifficultyLabel"></label>
+        <select id="difficultyLabel">
+          <option value="" data-i18n="difficultyUnassigned"></option>
+          <option value="easy" data-i18n="difficultyEasy"></option>
+          <option value="medium" data-i18n="difficultyMedium"></option>
+          <option value="hard" data-i18n="difficultyHard"></option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <label for="routeDifficulty" data-i18n="expectedDifficulty"></label>
+        <select id="routeDifficulty">
+          <option value="" data-i18n="difficultyAny"></option>
+          <option value="easy" data-i18n="difficultyEasy"></option>
+          <option value="medium" data-i18n="difficultyMedium"></option>
+          <option value="hard" data-i18n="difficultyHard"></option>
+        </select>
+      </div>
       <div style="display:flex;gap:8px;">
         <button id="splitCurrentBtn" class="primary" style="flex:1;justify-content:center;" data-i18n="splitPieceBtn">Chia cuộn cho mảnh này</button>
         <button id="splitAllBtn" class="alt" style="flex:1;justify-content:center;" data-i18n="splitAllBtn">Chia cuộn cho toàn bộ mảnh</button>
@@ -989,7 +1014,15 @@ const COLOR_NAMES = {
 // =====================================================================
 const I18N = {
   vi: {
+    gameDifficultyLabel: "Nhãn trong game",
+    difficultyUnassigned: "Chưa gán",
+    expectedDifficulty: "Độ khó kỳ vọng",
+    difficultyAny: "Bất kỳ",
+    difficultyEasy: "Dễ",
+    difficultyMedium: "Trung bình",
+    difficultyHard: "Khó",
     canvasHelpTitle: "Hướng dẫn thao tác",
+    toggleCanvasBackground: "Màu nền bàn vẽ",
     advice: "Nhận xét",
     junctions: "ô ngã ba/ngã tư",
     seconds: "giây",
@@ -1029,7 +1062,7 @@ const I18N = {
     tabImport: "Nhập ảnh",
     tabSim: "Test người chơi",
     simTitle: "Test người chơi",
-    simDesc: "Chia cuộn tự test từng mảnh theo số lượt đã chọn. Dễ: nhóm phổ thông thắng ≥85%; Trung bình: ≥50%; Khó: <50%. Ước lượng với 3 tim, không thay thế chơi thử thực tế. Chạy lại test giữ nguyên cuộn. Hoàn tác để quay lại cách chia trước.",
+    simDesc: "Khi chọn độ khó kỳ vọng, Editor thử tối đa 20 cách chia mỗi mảnh và giữ kết quả gần nhất nếu chưa đạt. Dễ: nhóm phổ thông thắng ≥85%; Trung bình: ≥50%; Khó: <50%. Ước lượng với 3 tim, không thay thế chơi thử thực tế. Chạy lại test giữ nguyên cuộn. Hoàn tác để quay lại cách chia trước.",
     simRuns: "Số lượt test mỗi nhóm:",
     runSimBtn: "Chạy lại test mảnh này",
     showHeatmap: "Hiện bản đồ nhiệt điểm bẫy (Heatmap) trên Canvas",
@@ -1088,7 +1121,15 @@ const I18N = {
     emptyPiece: "Trống"
   },
   en: {
+    gameDifficultyLabel: "In-game label",
+    difficultyUnassigned: "Unassigned",
+    expectedDifficulty: "Target difficulty",
+    difficultyAny: "Any",
+    difficultyEasy: "Easy",
+    difficultyMedium: "Medium",
+    difficultyHard: "Hard",
     canvasHelpTitle: "Canvas controls",
+    toggleCanvasBackground: "Canvas background color",
     advice: "Advice",
     junctions: "junction cells",
     seconds: "seconds",
@@ -1128,7 +1169,7 @@ const I18N = {
     tabImport: "Import Image",
     tabSim: "Player Sim",
     simTitle: "Player Test",
-    simDesc: "Splitting automatically tests each affected piece with the selected runs per persona. Regular win rate: Easy ≥85%, Medium ≥50%, Hard <50%. Estimates use 3 hearts. Retest keeps spools unchanged; Undo restores the previous split.",
+    simDesc: "With a target difficulty, the editor tries up to 20 splits per piece and keeps the closest result if none match. Regular win rate: Easy ≥85%, Medium ≥50%, Hard <50%. Estimates use 3 hearts. Retest keeps spools unchanged; Undo restores the previous split.",
     simRuns: "Runs per persona:",
     runSimBtn: "Retest this piece",
     showHeatmap: "Show Trap Heatmap on Canvas",
@@ -1212,6 +1253,27 @@ function setLang(lang) {
 // =====================================================================
 let S = null;
 let testBusy = false;
+let fileBusy = false;
+function updateBusyButtons() {
+  for (const id of ['splitCurrentBtn', 'splitAllBtn', 'runSimBtn', 'loadBtn', 'importJsonBtn', 'pickFilesBtn']) {
+    $(id).disabled = testBusy || fileBusy;
+  }
+  $('applyServerBtn').disabled = testBusy || fileBusy || !isServerOnline;
+  $('applyGameBtn').disabled = testBusy || fileBusy || !logicHandle || !indexHandle;
+}
+function exclusiveFileAction(action) {
+  return async () => {
+    if (testBusy || fileBusy) return;
+    fileBusy = true;
+    updateBusyButtons();
+    try {
+      await action();
+    } finally {
+      fileBusy = false;
+      updateBusyButtons();
+    }
+  };
+}
 const playerTests = new Map();
 let curColor = 'R';
 let currentTool = 'pen';
@@ -1240,6 +1302,7 @@ function createBlankState(w = 24, h = 24, name = 'My Tapestry') {
     tap: isTap,
     diff: 3,
     diffs: [],
+    difficultyLabels: [],
     spools: {},
     baked: {}
   };
@@ -1272,7 +1335,7 @@ function pieceRows(s, idx) {
 
 function snapshot() {
   historyStack.push(JSON.stringify({
-    cells: S.cells, w: S.w, h: S.h, palette: S.palette, background: S.background, spools: S.spools
+    cells: S.cells, w: S.w, h: S.h, palette: S.palette, background: S.background, spools: S.spools, difficultyLabels: S.difficultyLabels ?? []
   }));
   if (historyStack.length > 100) historyStack.shift();
   redoStack = [];
@@ -1281,7 +1344,7 @@ function snapshot() {
 function undo() {
   if (!historyStack.length) return;
   redoStack.push(JSON.stringify({
-    cells: S.cells, w: S.w, h: S.h, palette: S.palette, background: S.background, spools: S.spools
+    cells: S.cells, w: S.w, h: S.h, palette: S.palette, background: S.background, spools: S.spools, difficultyLabels: S.difficultyLabels ?? []
   }));
   const prev = JSON.parse(historyStack.pop());
   Object.assign(S, prev);
@@ -1292,7 +1355,7 @@ function undo() {
 function redo() {
   if (!redoStack.length) return;
   historyStack.push(JSON.stringify({
-    cells: S.cells, w: S.w, h: S.h, palette: S.palette, background: S.background, spools: S.spools
+    cells: S.cells, w: S.w, h: S.h, palette: S.palette, background: S.background, spools: S.spools, difficultyLabels: S.difficultyLabels ?? []
   }));
   const next = JSON.parse(redoStack.pop());
   Object.assign(S, next);
@@ -1363,6 +1426,13 @@ function endPan(e) {
 for (const type of ['pointerup','pointercancel','lostpointercapture']) canvasWrap.addEventListener(type,endPan);
 canvasWrap.addEventListener('auxclick', e => { if(e.button === 1) e.preventDefault(); });
 $('fitCanvasBtn').onclick = fitCanvas;
+let showCanvasBackground = true;
+const backgroundButton = $('toggleCanvasBackgroundBtn');
+backgroundButton.onclick = () => {
+  showCanvasBackground = !showCanvasBackground;
+  backgroundButton.setAttribute('aria-pressed', String(showCanvasBackground));
+  drawCanvas();
+};
 
 function drawCanvas() {
   cellSize = +$('zoom').value;
@@ -1382,7 +1452,7 @@ function drawCanvas() {
   positionCanvas();
 
   // Draw background fabric
-  ctx.fillStyle = S.background;
+  ctx.fillStyle = showCanvasBackground ? S.background : "#ded8cf";
   ctx.fillRect(0, 0, cv.width, cv.height);
 
   // Draw cells
@@ -1806,10 +1876,17 @@ function renderPieceNavigator() {
     if (sArr.length > 0) {
       dotClass = 'ready';
     }
+    const result = playerTests.get(i);
+    const difficulty = result?.sim && result.key === testKey(i) ? pieceDifficulty(result.sim) : '';
+    const labels = I18N[currentLang];
+    const labelNames = { easy: labels.difficultyEasy, medium: labels.difficultyMedium, hard: labels.difficultyHard };
+    const assigned = S.difficultyLabels?.[i];
+    const difficultyLabel = labelNames[difficulty];
     gridHtml += `
       <div class="piece-tile ${isAct ? 'active' : ''} ${dotClass}" data-piece="${i}" title="Mảnh #${pieceNum}: ${sArr.length} cuộn">
         <span>${pieceNum}</span>
-        <div class="dot"></div>
+        ${Object.hasOwn(labelNames, assigned) ? `<span class="piece-difficulty ${assigned}" title="${labels.gameDifficultyLabel}">◆ ${labelNames[assigned]}</span>` : ''}
+        ${difficultyLabel ? `<span class="piece-difficulty ${difficulty}" title="${labels.simTitle}">${difficultyLabel}</span>` : '<div class="dot"></div>'}
       </div>
     `;
   }
@@ -1968,7 +2045,7 @@ $('applyRawSpoolsBtn').onclick = () => {
 // =====================================================================
 // SPLITTING ALGORITHM CALLS
 // =====================================================================
-function getSplitOptions(pieceIdx, diffVal) {
+function getSplitOptions(pieceIdx, routeDifficulty, attempt) {
   let rawSeed = +$('seedInput').value;
   // If seed is -1 or invalid, randomize seed on each split
   let baseSeed = (isNaN(rawSeed) || rawSeed === -1)
@@ -1977,28 +2054,48 @@ function getSplitOptions(pieceIdx, diffVal) {
 
   return {
     diff: 3,
-    seed: baseSeed + pieceIdx * 17,
+    seed: baseSeed + pieceIdx * 17 + attempt * 1009,
     name: S.name,
     number: pieceIdx + 1,
     minLen: +$('minLenInput').value || 1,
-    preferLongSpools: true
+    preferLongSpools: true,
+    routeDifficulty,
+    maxSpools: routeDifficulty ? Infinity : undefined
   };
 }
 
-function splitOnePiece(pieceIdx, diffVal) {
-  const rows = pieceRows(S, pieceIdx);
-  if (!rows.join('').replace(/\./g, '')) {
-    S.spools[pieceIdx] = '';
-    return;
+async function findSplit(pieceIdx, rows, target, runs, reportAttempt) {
+  const cycle = [target, ...['easy', 'medium', 'hard'].filter(profile => profile !== target)];
+  const profiles = target
+    ? Array.from({ length: 20 }, (_, attempt) => cycle[attempt % cycle.length])
+    : [''];
+  const bounds = { easy: [85, 100], medium: [50, 84], hard: [0, 49] };
+  const seen = new Set();
+  let best, splitError;
+  for (const [attempt, profile] of profiles.entries()) {
+    if (target) {
+      reportAttempt(attempt + 1, profiles.length);
+      await new Promise(resolve => setTimeout(resolve, 30));
+    }
+    let level;
+    try {
+      level = L.splitLevel(rows, getSplitOptions(pieceIdx, profile, attempt));
+    } catch (error) {
+      splitError = error;
+      continue;
+    }
+    const spools = L.spoolText(level);
+    if (seen.has(spools)) continue;
+    seen.add(spools);
+    const sim = L.humanSim(level, { runs, hearts: 3 });
+    const rate = Math.round(sim.personas.regular.winRate * 100);
+    const [min, max] = bounds[target] || [0, 100];
+    const distance = Math.max(min - rate, rate - max, 0);
+    if (!best || distance < best.distance) best = { level, spools, sim, distance };
+    if (distance === 0) break;
   }
-  const lv = L.splitLevel(rows, getSplitOptions(pieceIdx, diffVal));
-  S.spools[pieceIdx] = L.spoolText(lv);
-  S.baked[pieceIdx] = {
-    trap: lv.trap,
-    target: lv.trapTarget,
-    range: lv.trapRange,
-    hearts: L.DIFF_HEARTS[diffVal]
-  };
+  if (!best) throw splitError;
+  return best;
 }
 
 function executeSplit(isAll) { return runPlayerTests(isAll, true); }
@@ -2093,24 +2190,24 @@ let isServerOnline = false;
 
 async function checkServerStatus() {
   const badge = $('serverStatusBadge');
-  const btn = $('applyServerBtn');
   try {
     const res = await fetch(SERVER_URL + '/api/ping', { mode: 'cors' });
     if (res.ok) {
       isServerOnline = true;
       badge.className = 'badge ok';
       badge.textContent = (currentLang === 'vi') ? '🟢 Server sẵn sàng (1-Click OK)' : '🟢 Server online (1-Click OK)';
-      btn.disabled = false;
+      updateBusyButtons();
       return;
     }
   } catch (e) {}
   isServerOnline = false;
+  updateBusyButtons();
   badge.className = 'badge warn';
   badge.textContent = (currentLang === 'vi') ? '⚪ Chưa bật server (Chạy start_editor.bat)' : '⚪ Server offline';
 }
 
 // Method 1: Local Server 1-Click Apply
-$('applyServerBtn').onclick = async () => {
+$('applyServerBtn').onclick = exclusiveFileAction(async () => {
   const msg = $('serverApplyMsg');
   msg.className = 'toast-msg warn show';
   msg.textContent = (currentLang === 'vi') ? 'Đang kiểm tra và ghi đè tự động...' : 'Validating and auto-applying...';
@@ -2157,13 +2254,13 @@ $('applyServerBtn').onclick = async () => {
       msg.textContent = '⚠️ ' + err.message;
     }
   }
-};
+});
 
 // Method 2: Fallback Manual File Picker
 let logicHandle = null;
 let indexHandle = null;
 
-$('pickFilesBtn').onclick = async () => {
+$('pickFilesBtn').onclick = exclusiveFileAction(async () => {
   const msg = $('applyStatusMsg');
   if (!window.showOpenFilePicker) {
     msg.className = 'toast-msg bad show';
@@ -2173,23 +2270,24 @@ $('pickFilesBtn').onclick = async () => {
   try {
     msg.className = 'toast-msg warn show';
     msg.textContent = (currentLang === 'vi') ? 'Đang chọn logic.js...' : 'Selecting logic.js...';
-    [logicHandle] = await window.showOpenFilePicker({ types: [{ description: 'logic.js', accept: { 'text/javascript': ['.js'] } }] });
+    const [selectedLogic] = await window.showOpenFilePicker({ types: [{ description: 'logic.js', accept: { 'text/javascript': ['.js'] } }] });
 
     msg.textContent = (currentLang === 'vi') ? 'Đang chọn index.html...' : 'Selecting index.html...';
-    [indexHandle] = await window.showOpenFilePicker({ types: [{ description: 'index.html', accept: { 'text/html': ['.html'] } }] });
+    const [selectedIndex] = await window.showOpenFilePicker({ types: [{ description: 'index.html', accept: { 'text/html': ['.html'] } }] });
 
+    logicHandle = selectedLogic;
+    indexHandle = selectedIndex;
     msg.className = 'toast-msg ok show';
     msg.textContent = (currentLang === 'vi') ? `✓ Đã kết nối: ${logicHandle.name} & ${indexHandle.name}` : `✓ Connected: ${logicHandle.name} & ${indexHandle.name}`;
-    $('applyGameBtn').disabled = false;
   } catch (e) {
     if (e.name !== 'AbortError') {
       msg.className = 'toast-msg bad show';
       msg.textContent = e.message;
     }
   }
-};
+});
 
-$('applyGameBtn').onclick = async () => {
+$('applyGameBtn').onclick = exclusiveFileAction(async () => {
   const msg = $('applyStatusMsg');
   msg.className = 'toast-msg warn show';
   msg.textContent = (currentLang === 'vi') ? 'Đang kiểm tra dữ liệu...' : 'Validating data...';
@@ -2240,7 +2338,7 @@ $('applyGameBtn').onclick = async () => {
     msg.className = 'toast-msg bad show';
     msg.textContent = '⚠️ ' + e.message;
   }
-};
+});
 
 function applyTapEntry(logicText, id, newEntry) {
   const startMarker = "{id:'" + id + "'";
@@ -2293,10 +2391,11 @@ function exportTapestryText() {
   const n = pieceCount(S);
   const spl = [];
   for (let i = 0; i < n; i++) spl.push(S.spools[i] || '');
+  const difficultyLabels = Array.from({ length: n }, (_, i) => S.difficultyLabels?.[i] || null);
   const diffs = Array.from({ length: n }, (_, i) => S.diffs[i] ?? S.diff);
   const id = ($('levelTid').value || 'mytap').replace(/[^a-z0-9_]/gi, '');
 
-  return `{id:'${id}',name:'${S.name.replace(/'/g, "\\'")}',short:'${S.name.split(' ')[0]}',background:'${S.background}',palette:${pal},diff:${S.diff},diffs:[${diffs}],cfg:{},art:\`\n${art.join('\n')}\n\`,spools:\`\n${spl.join('\n')}\n\`}`;
+  return `{id:'${id}',name:'${S.name.replace(/'/g, "\\'")}',short:'${S.name.split(' ')[0]}',background:'${S.background}',palette:${pal},diff:${S.diff},diffs:[${diffs}],difficultyLabels:${JSON.stringify(difficultyLabels)},cfg:{},art:\`\n${art.join('\n')}\n\`,spools:\`\n${spl.join('\n')}\n\`}`;
 }
 
 function exportMotifText() {
@@ -2306,7 +2405,12 @@ function exportMotifText() {
     for (let x = 0; x < S.w; x++) r += S.cells[y * S.w + x];
     rows.push("'" + r + "'");
   }
-  return `['${S.name.replace(/'/g, "\\'")}', [${rows.join(',')}]] // spools: ${S.spools[0] || '(chưa chia)'}`;
+  const label = S.difficultyLabels?.[0];
+  const options = {};
+  if (label) options.difficultyLabel = label;
+  if (S.useBakedMotif && S.spools[0]) options.bakedSpools = S.spools[0];
+  const config = Object.keys(options).length ? ', ' + JSON.stringify(options) : '';
+  return `['${S.name.replace(/'/g, "\\'")}', [${rows.join(',')}]${config}] // spools: ${S.spools[0] || '(chưa chia)'}`;
 }
 
 $('expTapBtn').onclick = () => $('exportOutput').textContent = exportTapestryText();
@@ -2331,15 +2435,24 @@ $('downloadCodeBtn').onclick = () => {
 $('importJsonBtn').onclick = () => $('jsonFileInput').click();
 $('jsonFileInput').onchange = async e => {
   const f = e.target.files[0];
-  if (!f) return;
+  if (!f || testBusy || fileBusy) return;
+  fileBusy = true;
+  updateBusyButtons();
   try {
     S = Object.assign(createBlankState(8, 8), JSON.parse(await f.text()));
+    playerTests.clear();
     selectedPiece = 0;
     solCache = null;
     refreshUI(true);
   } catch (err) {
     alert('File lỗi: ' + err.message);
+    return;
+  } finally {
+    fileBusy = false;
+    e.target.value = '';
+    updateBusyButtons();
   }
+  runPlayerTests(true, false);
 };
 
 // =====================================================================
@@ -2463,6 +2576,8 @@ function loadSource(val) {
     S.spools[0] = lv.spools.map(s => s.color + s.length).join(' ');
     S.diff = Math.min(5, Math.max(1, Math.round(lv.number / 4)));
     S.tap = false;
+    S.difficultyLabels = [lv.difficultyLabel || null];
+    S.useBakedMotif = Boolean(L.MOTIFS[lv.number - 2]?.[2]?.bakedSpools);
   } else {
     const p = L.makePictures()[+val.slice(1)];
     S = createBlankState(p.w, p.h, p.name);
@@ -2472,6 +2587,7 @@ function loadSource(val) {
     S.tap = true;
     S.diff = p.diff ?? 3;
     S.diffs = p.diffs ? [...p.diffs] : [];
+    S.difficultyLabels = [...(p.difficultyLabels ?? [])];
     (p.baked || []).forEach((t, i) => S.spools[i] = t);
     S.tid = p.id;
   }
@@ -2480,7 +2596,9 @@ function loadSource(val) {
   redoStack = [];
   selectedPiece = 0;
   solCache = null;
+  playerTests.clear();
   refreshUI(true);
+  runPlayerTests(true, false);
 }
 
 $('loadBtn').onclick = () => loadSource($('src').value);
@@ -2523,6 +2641,7 @@ document.querySelectorAll('.tab-btn').forEach(b => {
 });
 
 function refreshUI(rebuildInputs = false) {
+  $('difficultyLabel').value = S.difficultyLabels?.[S.tap ? selectedPiece : 0] || '';
   $('simSummaryBox').style.display = 'none';
   for (const persona of ['Casual','Regular','Pro']) {
     $('winRate'+persona).textContent = '--%';
@@ -2558,6 +2677,11 @@ $('diffRange').oninput = () => {
   else S.diff = d;
   refreshUI();
 };
+$('difficultyLabel').onchange = () => {
+  snapshot();
+  (S.difficultyLabels ??= [])[S.tap ? selectedPiece : 0] = $('difficultyLabel').value || null;
+  refreshUI();
+};
 $('tapModeCheckbox').onchange = () => {
   S.tap = $('tapModeCheckbox').checked;
   refreshUI();
@@ -2584,7 +2708,7 @@ window.addEventListener('keydown', e => {
 // HEATMAP OVERLAY & HUMAN SIMULATION INTEGRATION
 // =====================================================================
 
-function renderPlayerTest(sim) {
+function renderPlayerTest(sim, target) {
       const cRate = Math.round(sim.personas.casual.winRate * 100);
       const rRate = Math.round(sim.personas.regular.winRate * 100);
       const pRate = Math.round(sim.personas.pro.winRate * 100);
@@ -2621,7 +2745,14 @@ function renderPlayerTest(sim) {
           : 'High trap risk (~' + rRate + '% win). Players frequently lose hearts. Ideal for climax piece.';
       }
 
+      const measured = pieceDifficulty(sim);
+      const labels = I18N[currentLang];
+      const targetLabel = { easy: labels.difficultyEasy, medium: labels.difficultyMedium, hard: labels.difficultyHard }[target];
+      const targetNote = target && target !== measured
+        ? (currentLang === 'vi' ? 'Chưa đạt độ khó kỳ vọng' : 'Target difficulty not reached')
+        : labels.expectedDifficulty;
       box.innerHTML = `
+        ${targetLabel ? `<div style="margin-bottom:4px;">${targetNote} · ${targetLabel}</div>` : ''}
         <div style="font-weight:700;color:${diffColor};margin-bottom:6px;">${diffTag}</div>
         <div style="margin-bottom:4px;">⏱️ <b>${I18N[currentLang].estimateTime}:</b> ~${sim.estSeconds} ${I18N[currentLang].seconds}</div>
         <div style="margin-bottom:6px;">🔀 <b>${I18N[currentLang].branchComplexity}:</b> ${Math.round(sim.ambiguityScore * 100)}% (${sim.junctionCells} ${I18N[currentLang].junctions})</div>
@@ -2633,47 +2764,82 @@ function renderPlayerTest(sim) {
 }
 
 function testKey(idx) {
-  return JSON.stringify([pieceRows(S, idx), S.spools[idx] || '', +$('simRunsSelect').value]);
+  return JSON.stringify([pieceRows(S, idx), S.spools[idx] || '']);
+}
+function pieceDifficulty(sim) {
+  const rate = Math.round(sim.personas.regular.winRate * 100);
+  return rate >= 85 ? 'easy' : rate >= 50 ? 'medium' : 'hard';
 }
 function restorePlayerTest() {
   const result = playerTests.get(selectedPiece);
-  if (result && result.key === testKey(selectedPiece)) renderPlayerTest(result.sim);
+  if (result && result.key === testKey(selectedPiece)) renderPlayerTest(result.sim, result.target);
 }
 async function runPlayerTests(isAll, split) {
-  if (testBusy) return;
+  if (testBusy || fileBusy) return;
   const indices = isAll ? [...Array(pieceCount(S)).keys()] : [selectedPiece];
-  if (!split && !(S.spools[selectedPiece] || '').trim()) {
+  if (!isAll && !split && !(S.spools[selectedPiece] || '').trim()) {
     alert(currentLang === 'vi' ? 'Hãy chia cuộn cho mảnh này trước.' : 'Split this piece first.');
     return;
   }
   const runs = +$('simRunsSelect').value || 50;
+  const target = $('routeDifficulty').value;
   const progress = $('testProgress');
   testBusy = true;
+  updateBusyButtons();
   const surfaces = [document.querySelector('header'), document.querySelector('main')];
   surfaces.forEach(el => el.inert = true);
   progress.hidden = false;
-  if (split) { snapshot(); $('seedInput').value = Math.floor(Math.random() * 999999) + 1; }
-  let completed = 0;
+  let completed = 0, invalidPieces = 0;
   try {
+    if (split) { snapshot(); $('seedInput').value = Math.floor(Math.random() * 999999) + 1; }
     for (const idx of indices) {
       progress.textContent = (currentLang === 'vi' ? 'Đang chia / test mảnh ' : 'Processing piece ') + (idx + 1) + ' · ' + (completed + 1) + '/' + indices.length;
       await new Promise(resolve => setTimeout(resolve, 30));
-      if (split) splitOnePiece(idx, 3);
-      playerTests.delete(idx);
-      const rows = pieceRows(S, idx), spoolStr = (S.spools[idx] || '').trim();
-      if (spoolStr) {
-        const lv = L.levelFromBaked(idx + 1, S.name, rows, spoolStr);
-        const sim = L.humanSim(lv, { runs, hearts: 3 });
-        playerTests.set(idx, { key: testKey(idx), sim });
+      const previous = playerTests.get(idx);
+      const resultTarget = split ? target : previous?.key === testKey(idx) ? previous.target : '';
+      const rows = pieceRows(S, idx);
+      let sim;
+      if (split && rows.some(row => /[^.]/.test(row))) {
+        const pieceProgress = progress.textContent;
+        const result = await findSplit(idx, rows, target, runs, (attempt, total) => {
+          progress.textContent = pieceProgress + (currentLang === 'vi' ? ' · Lần thử ' : ' · Attempt ') + attempt + '/' + total;
+        });
+        S.spools[idx] = result.spools;
+        S.baked[idx] = {
+          trap: result.level.trap,
+          target: result.level.trapTarget,
+          range: result.level.trapRange,
+          hearts: L.DIFF_HEARTS[3]
+        };
+        sim = result.sim;
+      } else if (split) {
+        S.spools[idx] = '';
+        delete S.baked[idx];
+      } else if ((S.spools[idx] || '').trim()) {
+        try {
+          const level = L.levelFromBaked(idx + 1, S.name, rows, S.spools[idx]);
+          sim = L.humanSim(level, { runs, hearts: 3 });
+        } catch (error) {
+          if (!isAll) throw error;
+          invalidPieces++;
+        }
       }
+      if (sim) playerTests.set(idx, { key: testKey(idx), sim, target: resultTarget });
+      else playerTests.delete(idx);
       completed++;
     }
     progress.textContent = (currentLang === 'vi' ? 'Đã xử lý ' : 'Processed ') + completed + '/' + indices.length + (currentLang === 'vi' ? ' mảnh · ' : ' pieces · ') + runs + (currentLang === 'vi' ? ' lượt / nhóm. Mảnh trống được bỏ qua.' : ' runs / persona. Empty pieces skipped.');
+    if (invalidPieces) {
+      progress.textContent += currentLang === 'vi'
+        ? ' Không test được ' + invalidPieces + ' mảnh.'
+        : ' Could not test ' + invalidPieces + ' pieces.';
+    }
   } catch (e) {
     progress.textContent = (currentLang === 'vi' ? 'Dừng ở mảnh lỗi: ' : 'Stopped on error: ') + e.message;
   } finally {
     solCache = null;
     testBusy = false;
+    updateBusyButtons();
     surfaces.forEach(el => el.inert = false);
     refreshUI();
   }
