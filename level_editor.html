@@ -410,12 +410,12 @@ canvas {
   box-shadow: 0 1px 3px rgba(0,0,0,.3);
   cursor: pointer;
   border: 1px solid rgba(255,255,255,.2);
-  transition: transform .1s;
+  transition: border-color .12s, box-shadow .12s;
 }
-.spool-chip:hover { transform: scale(1.05); }
+.spool-chip:hover { border-color:#fff; box-shadow:inset 0 0 0 1px #fff; }
 .spool-chip.highlighted {
-  outline: 2px solid #fff;
-  box-shadow: 0 0 10px #fff;
+  border-color:#fff;
+  box-shadow:inset 0 0 0 1px #fff;
 }
 .stat-table {
   width: 100%;
@@ -528,6 +528,75 @@ pre.code-out {
 ::-webkit-scrollbar-track { background: #181210; }
 ::-webkit-scrollbar-thumb { background: #4a3b34; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--acc); }
+/* Designer workflow */
+[hidden] { display:none !important; }
+.app-layout { grid-template-columns:minmax(0,1fr) minmax(360px,440px); max-width:1800px; width:100%; margin:auto; gap:20px; padding:20px; }
+.inspector-column,.canvas-column { min-width:0; }
+.tabs-nav { display:flex; flex-wrap:wrap; gap:5px; padding:6px; border-radius:12px; }
+.tab-btn { flex:1 1 auto; min-height:40px; justify-content:center; }
+.panel-card { padding:18px; gap:18px; border-radius:14px; }
+button { min-height:34px; }
+button:focus-visible,summary:focus-visible { outline:2px solid var(--acc); outline-offset:3px; }
+.editor-setup { border-bottom:1px solid var(--border); padding-bottom:12px; }
+summary { cursor:pointer; padding:6px 0; color:var(--dim); font-weight:600; }
+.editor-setup[open] > div { margin-top:12px; }
+#playerTest > div:first-child { position:relative; }
+.help-tip { display:inline-block; position:relative; vertical-align:middle; }
+.help-trigger { border-radius:50%; min-height:26px; width:26px; padding:0; justify-content:center; }
+.help-tip [role=tooltip] { display:none; position:absolute; right:0; top:32px; width:280px; max-width:75vw; padding:12px; border:1px solid var(--border); border-radius:10px; background:#181210; color:var(--ink); font-size:12px; line-height:1.6; box-shadow:0 8px 24px #0008; z-index:20; }
+.help-tip:hover [role=tooltip],.help-tip:focus-within [role=tooltip] { display:block; }
+.canvas-wrapper { border-radius:14px; }
+#simSummaryBox { line-height:1.6; }
+@media(max-width:950px) { .app-layout { grid-template-columns:minmax(0,1fr); padding:12px; gap:12px; } }
+@media(prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; transition:none !important; } }
+/* Compact desktop workspace */
+header { padding:8px 14px; gap:8px; flex-shrink:0; }
+.app-layout { padding:10px; gap:12px; margin:0 auto; }
+.tabs-nav { flex-wrap:nowrap; padding:4px; gap:2px; }
+.tab-btn { min-height:34px; padding:6px 8px; font-size:12px; white-space:nowrap; }
+.panel-card { padding:12px; gap:10px; }
+.editor-setup { padding-bottom:4px; }
+#playerTest { gap:8px !important; }
+.piece-nav-card { padding:8px 12px; }
+.piece-nav-card .sub-desc { display:none; }
+.piece-grid-container { max-height:74px; margin-top:6px; }
+.spool-cards-list { max-height:90px; overflow-y:auto; overflow-x:hidden; scrollbar-gutter:stable; padding:2px; align-content:flex-start; }
+#simSummaryBox { line-height:1.35; }
+.canvas-wrapper canvas { flex-shrink:0; }
+/* Details expand the document; only the drawing viewport clips its camera. */
+.app-layout { align-items:start; }
+.canvas-wrapper { height:clamp(320px,calc(100dvh - 290px),760px); min-height:0; max-height:none; padding:0; overflow:hidden; display:block; cursor:grab; touch-action:none; }
+.canvas-wrapper canvas { position:absolute; left:50%; top:50%; max-width:none; max-height:none; transform:translate(calc(-50% + var(--pan-x, 0px)),calc(-50% + var(--pan-y, 0px))); }
+.canvas-wrapper.panning,.canvas-wrapper.panning canvas { cursor:grabbing; }
+.canvas-hud { z-index:2; }
+@media(max-width:950px) { .canvas-wrapper { height:55dvh; min-height:280px; } }
+.tool-row { flex-wrap:nowrap; gap:8px; }
+.tool-group { flex-shrink:0; }
+.tool-group button { padding:6px 8px; }
+.palette-options { display:flex; align-items:center; flex-wrap:wrap; gap:8px 14px; }
+.drawing-options { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.canvas-actions { position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:6px; z-index:4; }
+.canvas-icon { width:32px; height:32px; min-height:32px; padding:0; justify-content:center; }
+.canvas-help .help-trigger { width:32px; height:32px; background:var(--surface-2); }
+.canvas-help [role=tooltip] { top:38px; }
+.canvas-help:focus-within [role=tooltip] { display:none; }
+.canvas-help:hover [role=tooltip] { display:block; }
+canvas.picking { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M21%203a4%204%200%200%201%206%206l-4%204%202%202-3%203-2-2L9%2027l-6%202%202-6L16%2012l-2-2%203-3%202%202z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23211912%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22m8%2023%2010-10%203%203-10%2010H8z%22%20fill%3D%22%2355bfc4%22%2F%3E%3C%2Fsvg%3E") 3 29, crosshair; }
+@media(max-width:550px) { .tool-row { flex-wrap:wrap; } }
+/* Distinct secondary actions on the dark inspector panels. */
+.inspector-column .panel-card button:not(.primary):not(.success) {
+  background:#635046;
+  border-color:#a18a78;
+  color:#fff4e4;
+  box-shadow:inset 0 1px 0 #ffffff12,0 1px 2px #0003;
+}
+.inspector-column .panel-card button:not(.primary):not(.success):hover:not(:disabled) {
+  background:#796052;
+  border-color:#efbd91;
+}
+.inspector-column .panel-card button:disabled { opacity:.45; box-shadow:none; }
+.inspector-column .tab-btn:not(.active) { background:#493a32; border:1px solid #826b5c; color:#eadac7; }
+.inspector-column .tab-btn:not(.active):hover { background:#604b3f; border-color:var(--acc); color:#fff; }
 </style>
 </head>
 <body>
@@ -579,14 +648,21 @@ pre.code-out {
         <!-- Drawing Tools -->
         <div class="tool-group" id="toolsGroup">
           <button class="on" data-tool="pen" title="Phím tắt: P">✏️ <span data-i18n="toolPen">Bút</span></button>
-          <button data-tool="line" title="Phím tắt: L">📏 <span data-i18n="toolLine">Đoạn thẳng</span></button>
-          <button data-tool="fill" title="Phím tắt: F">🪣 <span data-i18n="toolFill">Đổ màu</span></button>
           <button data-tool="erase" title="Phím tắt: E">🧹 <span data-i18n="toolErase">Tẩy</span></button>
           <button data-tool="pick" title="Phím tắt: I / Chuột phải">💧 <span data-i18n="toolPick">Hút màu</span></button>
           <button id="clearBtn" title="Xóa toàn bộ">🗑️ <span data-i18n="toolClear">Xóa hết</span></button>
         </div>
 
-        <!-- Options -->
+        <!-- Zoom -->
+        <div style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;">
+          <span style="font-size:11px;color:var(--dim);" data-i18n="zoomLabel">Thu phóng</span>
+          <input type="range" id="zoom" min="2" max="96" step="1" value="26" style="width:80px;">
+        </div>
+      </div>
+
+
+      <!-- Color Palette -->
+      <div class="palette-options"><div class="palette-row" id="paletteRow"></div><div class="drawing-options">        <!-- Options -->
         <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
           <input type="checkbox" id="mirror">
           <span data-i18n="optMirror">Đối xứng trái-phải</span>
@@ -597,20 +673,16 @@ pre.code-out {
           <span data-i18n="optFocusPiece">🎯 Phóng to mảnh 8x8 đang chọn</span>
         </label>
 
-        <!-- Zoom -->
-        <div style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;">
-          <span style="font-size:11px;color:var(--dim);">Zoom</span>
-          <input type="range" id="zoom" min="12" max="50" value="26" style="width:80px;">
-        </div>
-      </div>
-
-      <!-- Color Palette -->
-      <div class="palette-row" id="paletteRow"></div>
+</div></div>
     </div>
 
     <!-- Canvas Area -->
     <div class="canvas-wrapper" id="canvasWrap">
       <div class="canvas-hud" id="hudInfo">24x24 &middot; Mảnh 1/9</div>
+      <div class="canvas-actions">
+        <span class="help-tip canvas-help"><button type="button" class="help-trigger" aria-label="Hướng dẫn" data-i18n-title="canvasHelpTitle" aria-describedby="canvasHelpTip">?</button><span id="canvasHelpTip" role="tooltip" data-i18n="canvasHelp"></span></span>
+        <button id="fitCanvasBtn" type="button" class="canvas-icon alt" data-i18n-title="fitCanvas" title="Vừa khung" aria-label="Vừa khung"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></button>
+      </div>
       <canvas id="cv"></canvas>
     </div>
 
@@ -645,14 +717,14 @@ pre.code-out {
     <div class="tabs-nav">
       <button class="tab-btn active" data-tab="tabSpools">🧵 <span data-i18n="tabSpools">Cuộn chỉ</span></button>
       <button class="tab-btn" data-tab="tabSolution">▶️ <span data-i18n="tabSolution">Lời giải</span></button>
-      <button class="tab-btn" data-tab="tabHealth">🩺 <span data-i18n="tabHealth">Kiểm tra</span></button>
       <button class="tab-btn" data-tab="tabExport">📤 <span data-i18n="tabExport">Áp dụng & Xuất</span></button>
       <button class="tab-btn" data-tab="tabImport">🖼️ <span data-i18n="tabImport">Nhập ảnh</span></button>
-      <button class="tab-btn" data-tab="tabSim">🤖 <span data-i18n="tabSim">Test người chơi</span></button>
+
     </div>
 
     <!-- TAB 1: SPOOLS & DIFFICULTY -->
     <div class="panel-card" id="tabSpools">
+      <details class="editor-setup"><summary data-i18n="infoTitle">Thông tin Level</summary>
       <div>
         <h3 data-i18n="infoTitle">Thông tin Level</h3>
         <div style="display:flex;gap:8px;margin-top:6px;">
@@ -672,84 +744,71 @@ pre.code-out {
         </p>
       </div>
 
+      </details>
       <!-- Difficulty & Splitting -->
+      <div hidden><input id="diffRange" type="hidden" value="3"><span id="diffLabelText"></span><span id="diffHeartsText"></span></div>
+<div id="playerTest" style="display:flex;flex-direction:column;gap:10px;">
       <div>
-        <h3 data-i18n="diffCardTitle">Phân chia cuộn chỉ (Spools) theo độ khó</h3>
-        <p class="sub-desc" style="margin:4px 0 8px;" data-i18n="diffExplain">
-          Độ khó quyết định số bẫy (đường đi lừa khiến kẹt chỉ). Level càng khó, người chơi càng phải suy nghĩ kỹ thứ tự đi chỉ.
-        </p>
-
-        <div class="diff-bar-container">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <b id="diffLabelText" style="color:var(--acc);">Vừa phải (Medium) - 35% bẫy</b>
-            <span style="font-size:11px;color:var(--dim);" id="diffHeartsText">❤️ 3 tim</span>
-          </div>
-          <input type="range" id="diffRange" min="1" max="5" value="3" style="width:100%;">
-          <div class="diff-labels">
-            <span>1: Rất dễ</span>
-            <span>2: Nhẹ nhàng</span>
-            <span>3: Vừa</span>
-            <span>4: Khó</span>
-            <span>5: Cực khó</span>
-          </div>
-        </div>
+        <h3 style="display:inline-block;margin-right:8px" data-i18n="simTitle">🤖 Giả lập người chơi thật (Player Simulation)</h3>
+        <span class="help-tip"><button type="button" class="help-trigger" aria-label="Roll & Test help" aria-describedby="rollHelp">?</button><span role="tooltip" id="rollHelp" data-i18n="simDesc"></span></span>
       </div>
 
-      <!-- Split Settings -->
+      <div style="display:flex;gap:8px;">
+        <button id="splitCurrentBtn" class="primary" style="flex:1;justify-content:center;" data-i18n="splitPieceBtn">Chia cuộn cho mảnh này</button>
+        <button id="splitAllBtn" class="alt" style="flex:1;justify-content:center;" data-i18n="splitAllBtn">Chia cuộn cho toàn bộ mảnh</button>
+      </div>
+      <div id="testProgress" role="status" aria-live="polite" hidden style="font-size:12px;color:var(--acc);"></div>
+      <!-- Simulation Controls -->
+      <div style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="font-size:12px;font-weight:600;" data-i18n="simRuns">Số lượt test mỗi nhóm:</label>
+          <select id="simRunsSelect" style="width:120px;">
+            <option value="20" data-i18n="runs20"></option>
+            <option value="50" selected data-i18n="runs50"></option>
+            <option value="100" data-i18n="runs100"></option>
+          </select>
+        </div>
+        <button id="runSimBtn" class="alt" style="width:100%;justify-content:center;font-size:13px;padding:8px 12px;">
+          ▶️ <span data-i18n="runSimBtn">Chạy mô phỏng cho mảnh này</span>
+        </button>
+      </div>
+
+      <!-- Persona Win Rate Cards -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div>
-          <label style="font-size:11px;color:var(--dim);display:block;" data-i18n="minLen">Dài tối thiểu</label>
-          <input type="number" id="minLenInput" min="1" max="6" value="1" style="width:100%;">
+        <div style="background:#221b18;border:1px solid #453630;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:11px;font-weight:700;color:var(--ok);" data-i18n="personaCasual">Casual</div>
+          <div style="font-size:18px;font-weight:800;margin:4px 0;" id="winRateCasual">--%</div>
+          <div style="font-size:10px;color:var(--dim);" id="heartsCasual">Người mới / Trẻ em</div>
         </div>
-        <div>
-          <label style="font-size:11px;color:var(--dim);display:block;" data-i18n="maxSpools">Max cuộn / mảnh</label>
-          <input type="number" id="maxSpoolsInput" min="2" max="16" value="8" style="width:100%;" title="Khay chứa của game tối đa 12 cuộn. Đặt số cuộn tối đa cho mỗi mảnh 8x8.">
+        <div style="background:#221b18;border:1px solid #453630;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:11px;font-weight:700;color:var(--warn);" data-i18n="personaRegular">Regular</div>
+          <div style="font-size:18px;font-weight:800;margin:4px 0;" id="winRateRegular">--%</div>
+          <div style="font-size:10px;color:var(--dim);" id="heartsRegular">Người chơi phổ thông</div>
         </div>
-        <div>
-          <label style="font-size:11px;color:var(--dim);display:block;" data-i18n="seed">Hạt giống (-1: ngẫu nhiên)</label>
-          <input type="number" id="seedInput" value="-1" style="width:100%;">
+        <div style="background:#221b18;border:1px solid #453630;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:11px;font-weight:700;color:var(--bad);" data-i18n="personaPro">Pro</div>
+          <div style="font-size:18px;font-weight:800;margin:4px 0;" id="winRatePro">--%</div>
+          <div style="font-size:10px;color:var(--dim);" id="heartsPro">Game thủ giải đố</div>
         </div>
       </div>
 
-      <!-- Split Action Buttons -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button id="splitCurrentBtn" class="primary" style="flex:1;">⚡ <span data-i18n="splitPieceBtn">Chia chỉ mảnh này</span></button>
-        <button id="splitAllBtn" class="alt">⚡ <span data-i18n="splitAllBtn">Chia TẤT CẢ các mảnh</span></button>
-        <button id="rerollSeedBtn" class="alt" title="Thử cách chia ngẫu nhiên khác">🎲</button>
-      </div>
+      <!-- Analytics & Advice Summary -->
+      <div id="simSummaryBox" style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;font-size:12px;color:var(--dim);display:none;"></div>
+    </div>
 
-      <!-- Conflict & Explanation Box (Shown when maxSpools or config cannot be met) -->
-      <div class="conflict-box" id="conflictBox">
-        <b class="title" id="conflictTitle">⚠️ Không thể giảm xuống số cuộn đã đặt!</b>
-        <div id="conflictBody"></div>
-      </div>
-
+      <input type="hidden" id="minLenInput" value="1"><input type="hidden" id="seedInput" value="-1">
       <!-- Spool Breakdown Visualization -->
       <div style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <b style="font-size:12px;color:var(--acc);" data-i18n="spoolsBreakdownTitle">Danh sách cuộn chỉ tạo ra</b>
-          <span style="font-size:11px;color:var(--dim);" id="spoolCountInfo">0 cuộn (Max 8)</span>
+          <span style="font-size:11px;color:var(--dim);" id="spoolCountInfo">0</span>
         </div>
 
         <div class="spool-cards-list" id="spoolChipsList">
           <span style="color:var(--dim);font-size:11px;" data-i18n="noSpoolsYet">Chưa có cuộn chỉ. Hãy bấm "Chia chỉ mảnh này" ở trên.</span>
         </div>
 
-        <!-- Color Matching Table -->
-        <div style="margin-top:10px;">
-          <b style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;" data-i18n="colorMatchTitle">Kiểm tra khớp số ô thêu:</b>
-          <table class="stat-table" id="colorStatTable">
-            <thead>
-              <tr>
-                <th data-i18n="colColor">Màu</th>
-                <th data-i18n="colCells">Số ô</th>
-                <th data-i18n="colSpools">Cuộn chỉ</th>
-                <th data-i18n="colStatus">Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody id="colorStatBody"></tbody>
-          </table>
-        </div>
+
       </div>
 
       <!-- Advanced Raw Spool Editor -->
@@ -772,7 +831,7 @@ pre.code-out {
 
       <div style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;display:flex;flex-direction:column;gap:8px;">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
-          <input type="checkbox" id="showSolutionToggle" checked>
+          <input type="checkbox" id="showSolutionToggle">
           <span data-i18n="showSolCheckbox">Vẽ đường giải đố lên bàn cờ</span>
         </label>
 
@@ -804,16 +863,6 @@ pre.code-out {
       <div class="help-box" data-i18n="solutionTips">
         <b>Mẹo:</b> Mỗi cuộn chỉ có 1 hình tròn đánh số là điểm bắt đầu. Đường nối chỉ rõ đường đi của kim thêu. Chọn một cuộn chỉ ở trên để nhìn rõ hướng đi mà không bị rối mắt!
       </div>
-    </div>
-
-    <!-- TAB 3: HEALTH & ANALYSIS -->
-    <div class="panel-card" id="tabHealth" style="display:none;">
-      <h3 data-i18n="healthTitle">Kiểm tra tính hợp lệ của Level</h3>
-      <p class="sub-desc" data-i18n="healthDesc">
-        Tự động quét và phát hiện các lỗi thiết kế trước khi đưa vào game.
-      </p>
-
-      <div id="healthReportBox"></div>
     </div>
 
     <!-- TAB 4: EXPORT & APPLY -->
@@ -905,63 +954,6 @@ pre.code-out {
       <button id="generateFromImgBtn" class="primary" disabled>🎨 <span data-i18n="generateGridBtn">Tạo lưới từ ảnh</span></button>
     </div>
 
-    <!-- TAB 6: HUMAN PLAYER SIMULATION & DESIGNER TOOLKIT -->
-    <div class="panel-card" id="tabSim" style="display:none;">
-      <div>
-        <h3 data-i18n="simTitle">🤖 Giả lập người chơi thật (Player Simulation)</h3>
-        <p class="sub-desc" data-i18n="simDesc">
-          Mô phỏng phản xạ thị giác, bẫy tham lam và thói quen giải đố của 3 nhóm người chơi (Casual, Regular, Pro) thay vì đi mò ngẫu nhiên.
-        </p>
-      </div>
-
-      <!-- Simulation Controls -->
-      <div style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <label style="font-size:12px;font-weight:600;" data-i18n="simRuns">Số lượt test mỗi nhóm:</label>
-          <select id="simRunsSelect" style="width:120px;">
-            <option value="20">20 lượt (Nhanh)</option>
-            <option value="50" selected>50 lượt (Chuẩn)</option>
-            <option value="100">100 lượt (Kỹ)</option>
-          </select>
-        </div>
-        <button id="runSimBtn" class="primary" style="width:100%;justify-content:center;font-size:13px;padding:8px 12px;">
-          ▶️ <span data-i18n="runSimBtn">Chạy mô phỏng cho mảnh này</span>
-        </button>
-      </div>
-
-      <!-- Heatmap Toggle -->
-      <div style="background:var(--surface-2);padding:8px 10px;border-radius:8px;border:1px solid #453630;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:12px;">
-          <input type="checkbox" id="showHeatmapToggle">
-          <span style="color:var(--bad);">🔥 <span data-i18n="showHeatmap">Hiện bản đồ nhiệt điểm bẫy (Heatmap) trên Canvas</span></span>
-        </label>
-        <p class="sub-desc" style="margin:4px 0 0 24px;" data-i18n="heatmapDesc">
-          Những ô đỏ rực là nơi người chơi hay rẽ nhầm hoặc dính bẫy kẹt chỉ nhiều nhất.
-        </p>
-      </div>
-
-      <!-- Persona Win Rate Cards -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div style="background:#221b18;border:1px solid #453630;border-radius:8px;padding:8px;text-align:center;">
-          <div style="font-size:11px;font-weight:700;color:var(--ok);">🟢 Casual</div>
-          <div style="font-size:18px;font-weight:800;margin:4px 0;" id="winRateCasual">--%</div>
-          <div style="font-size:10px;color:var(--dim);" id="heartsCasual">Người mới / Trẻ em</div>
-        </div>
-        <div style="background:#221b18;border:1px solid #453630;border-radius:8px;padding:8px;text-align:center;">
-          <div style="font-size:11px;font-weight:700;color:var(--warn);">🟡 Regular</div>
-          <div style="font-size:18px;font-weight:800;margin:4px 0;" id="winRateRegular">--%</div>
-          <div style="font-size:10px;color:var(--dim);" id="heartsRegular">Người chơi phổ thông</div>
-        </div>
-        <div style="background:#221b18;border:1px solid #453630;border-radius:8px;padding:8px;text-align:center;">
-          <div style="font-size:11px;font-weight:700;color:var(--bad);">🔴 Pro</div>
-          <div style="font-size:18px;font-weight:800;margin:4px 0;" id="winRatePro">--%</div>
-          <div style="font-size:10px;color:var(--dim);" id="heartsPro">Game thủ giải đố</div>
-        </div>
-      </div>
-
-      <!-- Analytics & Advice Summary -->
-      <div id="simSummaryBox" style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;font-size:12px;color:var(--dim);display:none;"></div>
-    </div>
 
   </aside>
 </main>
@@ -997,6 +989,21 @@ const COLOR_NAMES = {
 // =====================================================================
 const I18N = {
   vi: {
+    canvasHelpTitle: "Hướng dẫn thao tác",
+    advice: "Nhận xét",
+    junctions: "ô ngã ba/ngã tư",
+    seconds: "giây",
+    branchComplexity: "Độ phức tạp ngã rẽ",
+    estimateTime: "Thời gian giải ước tính",
+    personaPro: "Thành thạo",
+    personaRegular: "Phổ thông",
+    personaCasual: "Người mới",
+    runs100: "100 lượt (Kỹ)",
+    runs50: "50 lượt (Chuẩn)",
+    runs20: "20 lượt (Nhanh)",
+    canvasHelp: "Cuộn chuột để thu phóng · Giữ chuột giữa hoặc kéo vùng ngoài tranh để di chuyển.",
+    fitCanvas: "Vừa khung",
+    zoomLabel: "Thu phóng",
     appTitle: "Threadscape Studio",
     badgeEditor: "Trình tạo Level",
     loadBtn: "Nạp",
@@ -1021,10 +1028,10 @@ const I18N = {
     tabExport: "Áp dụng & Xuất",
     tabImport: "Nhập ảnh",
     tabSim: "Test người chơi",
-    simTitle: "🤖 Giả lập người chơi thật (Player Simulation)",
-    simDesc: "Mô phỏng phản xạ thị giác, bẫy tham lam và thói quen giải đố của 3 nhóm người chơi (Casual, Regular, Pro) thay vì đi mò ngẫu nhiên.",
+    simTitle: "Test người chơi",
+    simDesc: "Chia cuộn tự test từng mảnh theo số lượt đã chọn. Dễ: nhóm phổ thông thắng ≥85%; Trung bình: ≥50%; Khó: <50%. Ước lượng với 3 tim, không thay thế chơi thử thực tế. Chạy lại test giữ nguyên cuộn. Hoàn tác để quay lại cách chia trước.",
     simRuns: "Số lượt test mỗi nhóm:",
-    runSimBtn: "Chạy mô phỏng cho mảnh này",
+    runSimBtn: "Chạy lại test mảnh này",
     showHeatmap: "Hiện bản đồ nhiệt điểm bẫy (Heatmap) trên Canvas",
     heatmapDesc: "Những ô đỏ rực là nơi người chơi hay rẽ nhầm hoặc dính bẫy kẹt chỉ nhiều nhất.",
     infoTitle: "Thông tin Level",
@@ -1035,10 +1042,10 @@ const I18N = {
     minLen: "Dài tối thiểu",
     maxSpools: "Max cuộn / mảnh",
     seed: "Hạt giống (-1: ngẫu nhiên)",
-    splitPieceBtn: "Chia chỉ mảnh này",
-    splitAllBtn: "Chia TẤT CẢ các mảnh",
+    splitPieceBtn: "Chia cuộn cho mảnh này",
+    splitAllBtn: "Chia cuộn cho toàn bộ mảnh",
     spoolsBreakdownTitle: "Danh sách cuộn chỉ tạo ra",
-    noSpoolsYet: "Chưa có cuộn chỉ. Hãy bấm \"Chia chỉ mảnh này\" ở trên.",
+    noSpoolsYet: "Chia cuộn để xem kết quả test người chơi.",
     colorMatchTitle: "Kiểm tra khớp số ô thêu:",
     colColor: "Màu",
     colCells: "Số ô",
@@ -1046,7 +1053,7 @@ const I18N = {
     colStatus: "Trạng thái",
     advManualSpool: "Tự chỉnh chuỗi chỉ thủ công (B15 G8...)",
     verifyManualSpools: "Xác nhận & Kiểm tra",
-    solutionTitle: "Xem cách giải (Solution)",
+    solutionTitle: "Xem lời giải",
     solutionDesc: "Hệ thống tự động tìm đường đi giải đố hợp lệ. Bạn có thể xem toàn bộ đường đi hoặc lọc riêng từng cuộn chỉ.",
     showSolCheckbox: "Vẽ đường giải đố lên bàn cờ",
     filterSpoolLabel: "Xem riêng từng cuộn chỉ:",
@@ -1061,8 +1068,8 @@ const I18N = {
     pickFilesBtn: "Chọn logic.js & index.html",
     applyNowBtn: "Ghi đè thủ công",
     exportCodeTitle: "Sao chép mã nguồn thủ công",
-    expTapBtn: "Tapestry entry (logic.js)",
-    expMotifBtn: "Mini-level row",
+    expTapBtn: "Dữ liệu tranh (logic.js)",
+    expMotifBtn: "Dữ liệu màn đơn",
     importJsonBtn: "Nhập JSON",
     copyBtn: "Sao chép",
     downloadBtn: "Tải file",
@@ -1081,6 +1088,21 @@ const I18N = {
     emptyPiece: "Trống"
   },
   en: {
+    canvasHelpTitle: "Canvas controls",
+    advice: "Advice",
+    junctions: "junction cells",
+    seconds: "seconds",
+    branchComplexity: "Branch complexity",
+    estimateTime: "Estimated solve time",
+    personaPro: "Pro",
+    personaRegular: "Regular",
+    personaCasual: "Casual",
+    runs100: "100 runs (Detailed)",
+    runs50: "50 runs (Standard)",
+    runs20: "20 runs (Quick)",
+    canvasHelp: "Scroll to zoom · Drag with the middle button or from outside the artwork to pan.",
+    fitCanvas: "Fit",
+    zoomLabel: "Zoom",
     appTitle: "Threadscape Studio",
     badgeEditor: "Level Editor",
     loadBtn: "Load",
@@ -1105,10 +1127,10 @@ const I18N = {
     tabExport: "Apply & Export",
     tabImport: "Import Image",
     tabSim: "Player Sim",
-    simTitle: "🤖 Human Player Simulation",
-    simDesc: "Simulates visual heuristics, greedy traps, and cognitive puzzle habits across 3 personas (Casual, Regular, Pro) instead of random walking.",
+    simTitle: "Player Test",
+    simDesc: "Splitting automatically tests each affected piece with the selected runs per persona. Regular win rate: Easy ≥85%, Medium ≥50%, Hard <50%. Estimates use 3 hearts. Retest keeps spools unchanged; Undo restores the previous split.",
     simRuns: "Runs per persona:",
-    runSimBtn: "Run Simulation for this piece",
+    runSimBtn: "Retest this piece",
     showHeatmap: "Show Trap Heatmap on Canvas",
     heatmapDesc: "Bright red cells mark where players most frequently take wrong turns or deadlock.",
     infoTitle: "Level Info",
@@ -1120,9 +1142,9 @@ const I18N = {
     maxSpools: "Max spools / piece",
     seed: "Random seed (-1: random)",
     splitPieceBtn: "Split this piece",
-    splitAllBtn: "Split ALL pieces",
+    splitAllBtn: "Split all pieces",
     spoolsBreakdownTitle: "Generated Thread Spools",
-    noSpoolsYet: "No spools generated yet. Click \"Split this piece\" above.",
+    noSpoolsYet: "Split spools to see player test results.",
     colorMatchTitle: "Stitch count match check:",
     colColor: "Color",
     colCells: "Cells",
@@ -1177,6 +1199,11 @@ function setLang(lang) {
     const k = el.dataset.i18n;
     if (I18N[lang][k]) el.textContent = I18N[lang][k];
   });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const label = I18N[lang][el.dataset.i18nTitle];
+    el.title = label;
+    el.setAttribute('aria-label', label);
+  });
   refreshUI();
 }
 
@@ -1184,6 +1211,8 @@ function setLang(lang) {
 // STATE MANAGEMENT
 // =====================================================================
 let S = null;
+let testBusy = false;
+const playerTests = new Map();
 let curColor = 'R';
 let currentTool = 'pen';
 let selectedPiece = 0;
@@ -1281,6 +1310,59 @@ function saveDraft() {
 const cv = $('cv');
 const ctx = cv.getContext('2d');
 let cellSize = 26;
+const canvasWrap = $('canvasWrap');
+let panX = 0, panY = 0, panGesture = null;
+function positionCanvas() {
+  cv.style.setProperty('--pan-x', panX + 'px');
+  cv.style.setProperty('--pan-y', panY + 'px');
+}
+function zoomCanvas(value, clientX, clientY) {
+  if (testBusy || isDragging || lineStartPos || panGesture) return;
+  const bounds = canvasWrap.getBoundingClientRect();
+  const x = (clientX ?? bounds.left + bounds.width / 2) - bounds.left - bounds.width / 2;
+  const y = (clientY ?? bounds.top + bounds.height / 2) - bounds.top - bounds.height / 2;
+  const next = Math.max(2, Math.min(96, Math.round(value)));
+  const ratio = next / cellSize;
+  panX = x - (x - panX) * ratio;
+  panY = y - (y - panY) * ratio;
+  $('zoom').value = next;
+  drawCanvas();
+}
+function fitCanvas() {
+  if (!S || testBusy) return;
+  const focus = $('focusMode').checked && S.tap;
+  $('zoom').value = Math.max(2, Math.min(96, Math.floor(Math.min((canvasWrap.clientWidth - 48) / (focus ? 8 : S.w), (canvasWrap.clientHeight - 48) / (focus ? 8 : S.h)))));
+  panX = panY = 0;
+  drawCanvas();
+}
+canvasWrap.addEventListener('wheel', e => {
+  if (e.target.closest('.canvas-actions')) return;
+  e.preventDefault();
+  if (e.deltaY) zoomCanvas(cellSize + Math.sign(-e.deltaY) * Math.max(1, Math.round(cellSize * .12)), e.clientX, e.clientY);
+}, { passive:false });
+canvasWrap.addEventListener('pointerdown', e => {
+  if (testBusy || isDragging || lineStartPos || panGesture || e.target.closest('.canvas-actions')) return;
+  if (e.button !== 1 && !(e.button === 0 && e.target === canvasWrap)) return;
+  e.preventDefault(); e.stopPropagation();
+  panGesture = { id:e.pointerId, x:e.clientX, y:e.clientY, panX, panY };
+  canvasWrap.setPointerCapture(e.pointerId);
+  canvasWrap.classList.add('panning');
+}, true);
+canvasWrap.addEventListener('pointermove', e => {
+  if (!panGesture || panGesture.id !== e.pointerId) return;
+  panX = panGesture.panX + e.clientX - panGesture.x;
+  panY = panGesture.panY + e.clientY - panGesture.y;
+  positionCanvas();
+});
+function endPan(e) {
+  if (!panGesture || panGesture.id !== e.pointerId) return;
+  panGesture = null;
+  canvasWrap.classList.remove('panning');
+  if (canvasWrap.hasPointerCapture(e.pointerId)) canvasWrap.releasePointerCapture(e.pointerId);
+}
+for (const type of ['pointerup','pointercancel','lostpointercapture']) canvasWrap.addEventListener(type,endPan);
+canvasWrap.addEventListener('auxclick', e => { if(e.button === 1) e.preventDefault(); });
+$('fitCanvasBtn').onclick = fitCanvas;
 
 function drawCanvas() {
   cellSize = +$('zoom').value;
@@ -1294,6 +1376,10 @@ function drawCanvas() {
     cv.width = S.w * cellSize;
     cv.height = S.h * cellSize;
   }
+
+  cv.style.width = cv.width + "px";
+  cv.style.height = cv.height + "px";
+  positionCanvas();
 
   // Draw background fabric
   ctx.fillStyle = S.background;
@@ -1362,7 +1448,7 @@ function drawCanvas() {
   const cols = pieceCols(S);
   const curRow = Math.floor(selectedPiece / cols) + 1;
   const curCol = (selectedPiece % cols) + 1;
-  $('hudInfo').textContent = `${S.w}x${S.h} &middot; ${S.tap ? `Mảnh ${selectedPiece + 1}/${pieceCount(S)} (R${curRow}, C${curCol})` : 'Single level'}`;
+  $('hudInfo').textContent = `${S.w}×${S.h} · ${S.tap ? (currentLang === 'vi' ? 'Mảnh ' : 'Piece ') + (selectedPiece + 1) + '/' + pieceCount(S) : (currentLang === 'vi' ? 'Màn đơn' : 'Single level')}`;
 }
 
 function getSolutionForPiece(idx) {
@@ -1465,8 +1551,9 @@ function drawSolutionPaths(isFocus, b) {
 // Coordinate mapping
 function getCanvasPos(e) {
   const r = cv.getBoundingClientRect();
-  const rawX = Math.floor((e.clientX - r.left) / cellSize);
-  const rawY = Math.floor((e.clientY - r.top) / cellSize);
+  if (e.clientX < r.left || e.clientY < r.top || e.clientX >= r.right || e.clientY >= r.bottom) return null;
+  const rawX = Math.floor((e.clientX - r.left) * cv.width / r.width / cellSize);
+  const rawY = Math.floor((e.clientY - r.top) * cv.height / r.height / cellSize);
 
   const isFocus = $('focusMode').checked && S.tap;
   const b = pieceBox(S, selectedPiece);
@@ -1500,11 +1587,27 @@ function floodFill(x, y, targetColor) {
   }
 }
 
+// The eyedropper cursor also provides feedback for a quick right click.
+let rightPicking = false, pickerCursorTimer;
+function updatePickerCursor() { cv.classList.toggle('picking', rightPicking || currentTool === 'pick'); }
+function finishPickerCursor() {
+  clearTimeout(pickerCursorTimer);
+  pickerCursorTimer = setTimeout(() => { rightPicking = false; updatePickerCursor(); }, 180);
+}
+cv.addEventListener('lostpointercapture', finishPickerCursor);
+window.addEventListener('blur', () => { clearTimeout(pickerCursorTimer); rightPicking = false; updatePickerCursor(); });
 // Canvas Mouse / Pointer Events
 cv.addEventListener('pointerdown', e => {
+  if (testBusy || panGesture || (e.button !== 0 && e.button !== 2)) return;
   const pos = getCanvasPos(e);
   if (!pos) return;
   cv.setPointerCapture(e.pointerId);
+
+  if (e.button === 2) {
+    clearTimeout(pickerCursorTimer);
+    rightPicking = true;
+    updatePickerCursor();
+  }
 
   // Eyedropper on right click or pick tool
   if (e.button === 2 || currentTool === 'pick') {
@@ -1543,6 +1646,7 @@ cv.addEventListener('pointermove', e => {
 });
 
 cv.addEventListener('pointerup', e => {
+  if (e.button === 2) finishPickerCursor();
   if (lineStartPos) {
     const pos = getCanvasPos(e) || lineStartPos;
     const [x0, y0] = lineStartPos;
@@ -1561,6 +1665,8 @@ cv.addEventListener('pointerup', e => {
     refreshUI();
   }
 });
+
+cv.addEventListener('pointercancel', () => { isDragging = false; lineStartPos = null; refreshUI(); });
 
 cv.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -1581,6 +1687,7 @@ cv.addEventListener('dblclick', e => {
 // =====================================================================
 function setTool(toolName) {
   currentTool = toolName;
+  updatePickerCursor();
   document.querySelectorAll('#toolsGroup button[data-tool]').forEach(b => {
     b.classList.toggle('on', b.dataset.tool === toolName);
   });
@@ -1677,18 +1784,12 @@ function renderPieceNavigator() {
     : `Piece ${selectedPiece + 1} / ${total} (Row ${curRow}, Col ${curCol})`;
 
   const spools = S.spools[selectedPiece];
-  const maxTarget = +$('maxSpoolsInput').value || 8;
   const badge = $('pieceStatusBadge');
   const spoolArr = (spools || '').trim().split(/\s+/).filter(Boolean);
 
   if (spoolArr.length > 0) {
-    if (spoolArr.length > maxTarget) {
-      badge.className = 'badge warn';
-      badge.textContent = (currentLang === 'vi') ? `⚠️ ${spoolArr.length} cuộn (> ${maxTarget})` : `⚠️ ${spoolArr.length} spools (> ${maxTarget})`;
-    } else {
-      badge.className = 'badge ok';
-      badge.textContent = (currentLang === 'vi') ? `✓ ${spoolArr.length} cuộn (Đạt)` : `✓ ${spoolArr.length} spools (OK)`;
-    }
+    badge.className = 'badge ok';
+    badge.textContent = spoolArr.length + (currentLang === 'vi' ? ' cuộn' : ' spools');
   } else {
     badge.className = 'badge bad';
     badge.textContent = (currentLang === 'vi') ? '⚠️ Chưa chia chỉ' : '⚠️ No spools';
@@ -1703,7 +1804,7 @@ function renderPieceNavigator() {
     const pieceNum = i + 1;
     let dotClass = 'bad';
     if (sArr.length > 0) {
-      dotClass = (sArr.length > maxTarget) ? 'warn' : 'ready';
+      dotClass = 'ready';
     }
     gridHtml += `
       <div class="piece-tile ${isAct ? 'active' : ''} ${dotClass}" data-piece="${i}" title="Mảnh #${pieceNum}: ${sArr.length} cuộn">
@@ -1768,120 +1869,24 @@ function analyzePieceComplexity(rows) {
   return { colorCount, totalDisconnectedRegions, colorComps, fragmentedColors };
 }
 
-function updateConflictNotice() {
-  const box = $('conflictBox');
-  const title = $('conflictTitle');
-  const body = $('conflictBody');
-  const targetMax = +$('maxSpoolsInput').value || 8;
-  const spools = (S.spools[selectedPiece] || '').trim().split(/\s+/).filter(Boolean);
-
-  if (!spools.length || spools.length <= targetMax) {
-    box.className = 'conflict-box';
-    box.style.display = 'none';
-    return;
-  }
-
-  const rows = pieceRows(S, selectedPiece);
-  const { colorCount, totalDisconnectedRegions, fragmentedColors } = analyzePieceComplexity(rows);
-
-  box.className = 'conflict-box show';
-  box.style.display = 'block';
-
-  title.textContent = (currentLang === 'vi')
-    ? `⚠️ Mảnh #${selectedPiece + 1} chia thành ${spools.length} cuộn (Vượt mục tiêu Max = ${targetMax})`
-    : `⚠️ Piece #${selectedPiece + 1} produced ${spools.length} spools (Exceeds target Max = ${targetMax})`;
-
-  let explanations = [];
-
-  if (totalDisconnectedRegions > targetMax) {
-    if (currentLang === 'vi') {
-      explanations.push(`
-        <li><b>Bị đứt đoạn thành ${totalDisconnectedRegions} cụm màu rời rạc:</b> 
-        Kim thêu bắt buộc phải đi liên tục, không thể nhảy qua khoảng trống. Do đó, mỗi cụm màu rời bắt buộc phải có ít nhất 1 cuộn riêng.
-        <br>Về mặt toán học, mảnh này <b>không thể giảm xuống dưới ${totalDisconnectedRegions} cuộn</b> trừ khi bạn vẽ nối các cụm này lại!
-        ${fragmentedColors.length ? `<br><i>(Cụm rời: ${fragmentedColors.join(', ')})</i>` : ''}
-        </li>
-      `);
-    } else {
-      explanations.push(`
-        <li><b>Fragmented into ${totalDisconnectedRegions} disconnected regions:</b>
-        Threads cannot jump across gaps. Each disconnected island requires at least 1 spool.
-        Mathematically, it <b>cannot be reduced below ${totalDisconnectedRegions} spools</b> unless you connect these regions!
-        </li>
-      `);
-    }
-  } else if (colorCount > targetMax) {
-    if (currentLang === 'vi') {
-      explanations.push(`
-        <li><b>Quá nhiều màu trong 1 mảnh:</b> Mảnh này dùng tới ${colorCount} màu khác nhau. Mỗi màu cần ít nhất 1 cuộn nên không thể $\le ${targetMax}$.</li>
-      `);
-    } else {
-      explanations.push(`
-        <li><b>Too many colors:</b> Piece uses ${colorCount} colors. Each color requires at least 1 spool.</li>
-      `);
-    }
-  } else {
-    if (currentLang === 'vi') {
-      explanations.push(`
-        <li><b>Khối màu có hình dáng phân nhánh phức tạp (ngã 3, chữ thập...):</b>
-        Một sợi chỉ đơn không thể đi hết khối màu này trong 1 nét vẽ liên tục mà không tự chặn đường của chính nó. 
-        Thuật toán buộc phải tách thêm cuộn để đảm bảo level có thể giải được.</li>
-      `);
-    } else {
-      explanations.push(`
-        <li><b>Branched/Cross shape deadlock:</b>
-        The shape has branches or junctions where a single thread cannot cover all cells without deadlocking. Extra spools were required to guarantee a valid solution.</li>
-      `);
-    }
-  }
-
-  if (currentLang === 'vi') {
-    explanations.push(`
-      <li style="color:var(--ok);margin-top:6px;"><b>💡 Cách khắc phục:</b>
-      1) Nối các khối cùng màu lại thành mảng liền khối. 
-      2) Tăng ô <i>Dài tối thiểu</i> lên 2 hoặc 3.
-      3) Thử bấm nút 🎲 để thử hạt giống ngẫu nhiên khác.</li>
-    `);
-  } else {
-    explanations.push(`
-      <li style="color:var(--ok);margin-top:6px;"><b>💡 How to fix:</b>
-      1) Connect same-colored islands together into contiguous blobs.
-      2) Increase <i>Min length</i> to 2 or 3.
-      3) Click 🎲 to try another random seed.</li>
-    `);
-  }
-
-  body.innerHTML = `<ul>${explanations.join('')}</ul>`;
-}
-
-// =====================================================================
-// SPOOL BREAKDOWN & MATCH CHECKING
-// =====================================================================
 function renderSpoolBreakdown() {
   const spoolStr = (S.spools[selectedPiece] || '').trim();
   const listContainer = $('spoolChipsList');
   const countInfo = $('spoolCountInfo');
   const filterSelect = $('solutionSpoolFilter');
-  const targetMax = +$('maxSpoolsInput').value || 8;
 
   if (!spoolStr) {
     listContainer.innerHTML = `<span style="color:var(--dim);font-size:11px;">${I18N[currentLang].noSpoolsYet}</span>`;
-    countInfo.textContent = `0 ${currentLang === 'vi' ? 'cuộn' : 'spools'} (Max ${targetMax})`;
+    countInfo.textContent = `0 ${currentLang === 'vi' ? 'cuộn' : 'spools'}`;
     filterSelect.innerHTML = `<option value="-1">${I18N[currentLang].viewAllSpools}</option>`;
     $('rawSpoolText').value = '';
-    renderColorStatTable({});
-    updateConflictNotice();
     return;
   }
 
   $('rawSpoolText').value = spoolStr;
   const spools = spoolStr.split(/\s+/).filter(Boolean);
-  
-  if (spools.length > targetMax) {
-    countInfo.innerHTML = `<span style="color:var(--warn);font-weight:700;">${spools.length} cuộn (Vượt Max ${targetMax})</span>`;
-  } else {
-    countInfo.innerHTML = `<span style="color:var(--ok);font-weight:700;">${spools.length} cuộn (Đạt Max ${targetMax})</span>`;
-  }
+
+  countInfo.textContent = spools.length + (currentLang === 'vi' ? ' cuộn' : ' spools');
 
   let chipsHtml = '';
   let filterOptions = `<option value="-1">${I18N[currentLang].viewAllSpools}</option>`;
@@ -1912,76 +1917,23 @@ function renderSpoolBreakdown() {
     const idx = +chip.dataset.spoolIdx;
     activeSpoolHighlight = (activeSpoolHighlight === idx) ? -1 : idx;
     filterSelect.value = activeSpoolHighlight;
-    renderSpoolBreakdown();
+    updateSpoolHighlight();
     drawCanvas();
   };
 
   filterSelect.onchange = () => {
     activeSpoolHighlight = +filterSelect.value;
-    renderSpoolBreakdown();
+    updateSpoolHighlight();
     drawCanvas();
   };
 
-  const spoolCounts = {};
-  spools.forEach(s => {
-    const c = s[0];
-    const l = +s.slice(1);
-    spoolCounts[c] = (spoolCounts[c] || 0) + l;
-  });
 
-  renderColorStatTable(spoolCounts);
-  updateConflictNotice();
 }
 
-function renderColorStatTable(spoolCounts) {
-  const tbody = $('colorStatBody');
-  const rows = pieceRows(S, selectedPiece);
-  const cellCounts = {};
-
-  rows.forEach(r => {
-    for (const c of r) {
-      if (c !== '.') cellCounts[c] = (cellCounts[c] || 0) + 1;
-    }
+function updateSpoolHighlight() {
+  $('spoolChipsList').querySelectorAll('[data-spool-idx]').forEach(chip => {
+    chip.classList.toggle('highlighted', +chip.dataset.spoolIdx === activeSpoolHighlight);
   });
-
-  const allColors = Array.from(new Set([...Object.keys(cellCounts), ...Object.keys(spoolCounts)])).sort();
-  if (!allColors.length) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--dim);text-align:center;">${I18N[currentLang].emptyPiece}</td></tr>`;
-    return;
-  }
-
-  let tableHtml = '';
-  allColors.forEach(c => {
-    const boardCells = cellCounts[c] || 0;
-    const threadCells = spoolCounts[c] || 0;
-    const bg = S.palette[c] || '#888';
-    const colorName = COLOR_NAMES[currentLang][c] || c;
-
-    let statusBadge = '';
-    if (boardCells === threadCells) {
-      statusBadge = `<span class="badge ok">${I18N[currentLang].matchOk}</span>`;
-    } else if (boardCells > threadCells) {
-      statusBadge = `<span class="badge bad">${I18N[currentLang].matchDeficit} (-${boardCells - threadCells})</span>`;
-    } else {
-      statusBadge = `<span class="badge warn">${I18N[currentLang].matchSurplus} (+${threadCells - boardCells})</span>`;
-    }
-
-    tableHtml += `
-      <tr>
-        <td>
-          <span style="display:inline-flex;align-items:center;gap:4px;">
-            <span style="width:10px;height:10px;border-radius:2px;background:${bg};display:inline-block;"></span>
-            <b>${c}</b> (${colorName})
-          </span>
-        </td>
-        <td>${boardCells}</td>
-        <td>${threadCells}</td>
-        <td>${statusBadge}</td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = tableHtml;
 }
 
 // Hook up Manual Spool Text Apply
@@ -2024,12 +1976,12 @@ function getSplitOptions(pieceIdx, diffVal) {
     : rawSeed;
 
   return {
-    diff: diffVal,
+    diff: 3,
     seed: baseSeed + pieceIdx * 17,
     name: S.name,
     number: pieceIdx + 1,
     minLen: +$('minLenInput').value || 1,
-    maxSpools: +$('maxSpoolsInput').value || 8
+    preferLongSpools: true
   };
 }
 
@@ -2049,55 +2001,9 @@ function splitOnePiece(pieceIdx, diffVal) {
   };
 }
 
-function executeSplit(isAll) {
-  snapshot();
-  const indices = isAll ? [...Array(pieceCount(S)).keys()] : [selectedPiece];
-  const diffVal = +$('diffRange').value;
-  const targetMax = +$('maxSpoolsInput').value || 8;
-
-  try {
-    for (const idx of indices) {
-      const d = S.tap ? (S.diffs[idx] ?? diffVal) : diffVal;
-      splitOnePiece(idx, d);
-      if (!isAll && S.tap) S.diffs[selectedPiece] = diffVal;
-    }
-    solCache = null;
-    refreshUI();
-
-    // Check which pieces exceeded maxSpools
-    const exceeded = [];
-    indices.forEach(idx => {
-      const spools = (S.spools[idx] || '').trim().split(/\s+/).filter(Boolean);
-      if (spools.length > targetMax) {
-        exceeded.push({ piece: idx + 1, count: spools.length });
-      }
-    });
-
-    if (exceeded.length > 0 && isAll) {
-      alert(
-        (currentLang === 'vi')
-          ? `⚠️ Đã chia xong, nhưng có ${exceeded.length} mảnh vượt quá Max = ${targetMax} cuộn:\n` +
-            exceeded.map(e => `• Mảnh #${e.piece}: ${e.count} cuộn`).join('\n') +
-            `\n\nHãy xem hộp "Giải thích nguyên nhân" màu cam ở bảng bên phải để biết lý do!`
-          : `⚠️ Splitting done, but ${exceeded.length} piece(s) exceeded Max = ${targetMax} spools:\n` +
-            exceeded.map(e => `• Piece #${e.piece}: ${e.count} spools`).join('\n') +
-            `\n\nSee the orange explanation box on the right for causes and solutions!`
-      );
-    }
-  } catch (e) {
-    alert('Lỗi phân chia cuộn chỉ: ' + e.message);
-  }
-}
-
+function executeSplit(isAll) { return runPlayerTests(isAll, true); }
 $('splitCurrentBtn').onclick = () => executeSplit(false);
 $('splitAllBtn').onclick = () => executeSplit(true);
-$('rerollSeedBtn').onclick = () => {
-  // If seed is not -1, randomize it
-  if (+$('seedInput').value !== -1) {
-    $('seedInput').value = Math.floor(Math.random() * 9999) + 1;
-  }
-  executeSplit(false);
-};
 
 // =====================================================================
 // STEP-BY-STEP PLAYBACK
@@ -2179,90 +2085,6 @@ $('stepPlayBtn').onclick = () => {
 // =====================================================================
 // HEALTH & ANALYSIS CHECK
 // =====================================================================
-function runHealthCheck() {
-  const container = $('healthReportBox');
-  const rows = pieceRows(S, selectedPiece);
-  const issues = [];
-  const targetMax = +$('maxSpoolsInput').value || 8;
-  const curMinLen = +$('minLenInput').value || 1;
-
-  // Check 1: Isolated cells (< curMinLen)
-  let isolatedCount = 0;
-  const h = rows.length, w = rows[0].length;
-  const seen = new Set();
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const c = rows[y][x];
-      if (c === '.' || seen.has(y * w + x)) continue;
-      const q = [[x, y]];
-      seen.add(y * w + x);
-      let size = 0;
-      for (let k = 0; k < q.length; k++) {
-        const [cx, cy] = q[k];
-        size++;
-        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-          const nx = cx + dx, ny = cy + dy;
-          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-          if (seen.has(ny * w + nx) || rows[ny][nx] !== c) continue;
-          seen.add(ny * w + nx);
-          q.push([nx, ny]);
-        }
-      }
-      if (size < curMinLen) {
-        isolatedCount += size;
-      }
-    }
-  }
-
-  if (isolatedCount > 0) {
-    issues.push({
-      type: 'bad',
-      title: (currentLang === 'vi') ? `Có ${isolatedCount} ô nhỏ hơn độ dài tối thiểu (${curMinLen})!` : `${isolatedCount} cell(s) smaller than min length (${curMinLen})!`,
-      desc: (currentLang === 'vi') ? `Hãy kiểm tra lại nét vẽ trên hình hoặc chỉnh "Dài tối thiểu = 1" ở tab Cuộn chỉ.` : `Please adjust your artwork or set "Min length = 1" in the Spools tab.`
-    });
-  }
-
-  // Check 2: Exceeding config Max Spools
-  const spools = (S.spools[selectedPiece] || '').trim().split(/\s+/).filter(Boolean);
-  if (spools.length > targetMax) {
-    issues.push({
-      type: 'warn',
-      title: (currentLang === 'vi') ? `Số cuộn chỉ (${spools.length}) vượt mức Max đã đặt (${targetMax})!` : `Spool count (${spools.length}) exceeds Max config (${targetMax})!`,
-      desc: (currentLang === 'vi') ? 'Do các khối màu bị đứt đoạn thành nhiều cụm hoặc phân nhánh. Hãy xem hộp giải thích nguyên nhân ở tab Cuộn chỉ.' : 'Caused by fragmented color islands or branch deadlocks. See the explanation box in the Spools tab.'
-    });
-  }
-
-  // Check 3: Solvability
-  const sol = getSolutionForPiece(selectedPiece);
-  if (spools.length > 0 && !sol) {
-    issues.push({
-      type: 'bad',
-      title: (currentLang === 'vi') ? 'Không tìm được đường giải đố!' : 'No valid solution found!',
-      desc: (currentLang === 'vi') ? 'Các cuộn chỉ hiện tại không thể ghép thành tranh. Hãy bấm "Chia chỉ mảnh này" lại.' : 'Current spools cannot cover the pattern. Click "Split this piece" again.'
-    });
-  }
-
-  // Render report
-  if (!issues.length) {
-    container.innerHTML = `
-      <div style="background:#1a4225;border:1px solid var(--ok);border-radius:8px;padding:12px;color:var(--ok);">
-        <b>✅ ${currentLang === 'vi' ? 'Hoàn hảo! Không phát hiện lỗi nào.' : 'All clear! No design issues found.'}</b>
-        <p style="margin:4px 0 0;font-size:12px;color:#c9f5d4;">
-          ${currentLang === 'vi' ? 'Mảnh này hợp lệ và sẵn sàng để chơi.' : 'This piece is fully playable and solvable.'}
-        </p>
-      </div>
-    `;
-  } else {
-    container.innerHTML = issues.map(iss => `
-      <div style="background:${iss.type === 'bad' ? '#4a1917' : '#473a11'};border:1px solid ${iss.type === 'bad' ? 'var(--bad)' : 'var(--warn)'};border-radius:8px;padding:10px;margin-bottom:8px;">
-        <b style="color:${iss.type === 'bad' ? 'var(--bad)' : 'var(--warn)'};">${iss.title}</b>
-        <p style="margin:4px 0 0;font-size:12px;color:var(--dim);">${iss.desc}</p>
-      </div>
-    `).join('');
-  }
-}
-
 // =====================================================================
 // FILE SYSTEM ACCESS & LOCAL SERVER 1-CLICK APPLY
 // =====================================================================
@@ -2701,6 +2523,11 @@ document.querySelectorAll('.tab-btn').forEach(b => {
 });
 
 function refreshUI(rebuildInputs = false) {
+  $('simSummaryBox').style.display = 'none';
+  for (const persona of ['Casual','Regular','Pro']) {
+    $('winRate'+persona).textContent = '--%';
+    $('hearts'+persona).textContent = '--';
+  }
   if (rebuildInputs) {
     $('gw').value = S.w;
     $('gh').value = S.h;
@@ -2719,7 +2546,8 @@ function refreshUI(rebuildInputs = false) {
   renderPieceNavigator();
   renderSpoolBreakdown();
   preparePlaybackSteps();
-  runHealthCheck();
+  restorePlayerTest();
+  if (rebuildInputs) fitCanvas();
   saveDraft();
 }
 
@@ -2734,9 +2562,9 @@ $('tapModeCheckbox').onchange = () => {
   S.tap = $('tapModeCheckbox').checked;
   refreshUI();
 };
-$('focusMode').onchange = drawCanvas;
+$('focusMode').onchange = fitCanvas;
 $('showSolutionToggle').onchange = drawCanvas;
-$('zoom').oninput = drawCanvas;
+$('zoom').oninput = () => zoomCanvas(+$('zoom').value);
 $('levelName').oninput = () => S.name = $('levelName').value;
 $('levelTid').oninput = () => S.tid = $('levelTid').value;
 $('undoBtn').onclick = undo;
@@ -2744,70 +2572,19 @@ $('redoBtn').onclick = redo;
 
 // Keyboard shortcuts
 window.addEventListener('keydown', e => {
+  if (testBusy) { e.preventDefault(); return; }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redo(); }
-  const toolMap = { p: 'pen', l: 'line', f: 'fill', e: 'erase', i: 'pick' };
+  const toolMap = { p: 'pen', e: 'erase', i: 'pick' };
   if (toolMap[e.key.toLowerCase()]) setTool(toolMap[e.key.toLowerCase()]);
 });
 
 // =====================================================================
 // HEATMAP OVERLAY & HUMAN SIMULATION INTEGRATION
 // =====================================================================
-let currentHeatmapData = null;
 
-function drawHeatmapOverlay(isFocus, b) {
-  if (!currentHeatmapData || !currentHeatmapData.length) return;
-  const maxHeat = Math.max(...currentHeatmapData);
-  if (maxHeat <= 0) return;
-
-  const offsetX = isFocus ? 0 : b.x;
-  const offsetY = isFocus ? 0 : b.y;
-
-  for (let cellIdx = 0; cellIdx < 64; cellIdx++) {
-    const heat = currentHeatmapData[cellIdx];
-    if (!heat) continue;
-
-    const px = (offsetX + (cellIdx % 8) + 0.5) * cellSize;
-    const py = (offsetY + Math.floor(cellIdx / 8) + 0.5) * cellSize;
-    const intensity = Math.min(1, heat / maxHeat);
-
-    ctx.beginPath();
-    ctx.arc(px, py, cellSize * (0.28 + intensity * 0.18), 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 59, 48, ${0.35 + intensity * 0.55})`;
-    ctx.fill();
-    ctx.strokeStyle = '#ff3b30';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.round(cellSize * 0.32)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(heat, px, py);
-  }
-}
-
-$('runSimBtn').onclick = () => {
-  const spoolStr = (S.spools[selectedPiece] || '').trim();
-  if (!spoolStr) {
-    alert((currentLang === 'vi') ? 'Mảnh này chưa có cuộn chỉ! Hãy bấm "Chia chỉ mảnh này" ở tab Cuộn chỉ trước.' : 'No spools for this piece! Split spools in the Spools tab first.');
-    return;
-  }
-
-  const btn = $('runSimBtn');
-  btn.disabled = true;
-  btn.textContent = (currentLang === 'vi') ? '⏳ Đang giả lập 3 nhóm người chơi...' : '⏳ Simulating 3 personas...';
-
-  setTimeout(() => {
-    try {
-      const rows = pieceRows(S, selectedPiece);
-      const lv = L.levelFromBaked(selectedPiece + 1, S.name, rows, spoolStr);
-      const runs = +$('simRunsSelect').value || 30;
-      const sim = L.humanSim(lv, { runs, hearts: 3 });
-
-      currentHeatmapData = sim.heatmap;
-
+function renderPlayerTest(sim) {
       const cRate = Math.round(sim.personas.casual.winRate * 100);
       const rRate = Math.round(sim.personas.regular.winRate * 100);
       const pRate = Math.round(sim.personas.pro.winRate * 100);
@@ -2846,25 +2623,63 @@ $('runSimBtn').onclick = () => {
 
       box.innerHTML = `
         <div style="font-weight:700;color:${diffColor};margin-bottom:6px;">${diffTag}</div>
-        <div style="margin-bottom:4px;">⏱️ <b>Thời gian giải ước tính:</b> ~${sim.estSeconds} giây</div>
-        <div style="margin-bottom:6px;">🔀 <b>Độ phức tạp ngã rẽ:</b> ${Math.round(sim.ambiguityScore * 100)}% (${sim.junctionCells} ô ngã ba/ngã tư)</div>
+        <div style="margin-bottom:4px;">⏱️ <b>${I18N[currentLang].estimateTime}:</b> ~${sim.estSeconds} ${I18N[currentLang].seconds}</div>
+        <div style="margin-bottom:6px;">🔀 <b>${I18N[currentLang].branchComplexity}:</b> ${Math.round(sim.ambiguityScore * 100)}% (${sim.junctionCells} ${I18N[currentLang].junctions})</div>
         <div style="color:var(--ink);background:rgba(0,0,0,0.25);padding:8px;border-radius:6px;border-left:3px solid ${diffColor};">
-          💡 <b>Nhận xét:</b> ${advice}
+          💡 <b>${I18N[currentLang].advice}:</b> ${advice}
         </div>
       `;
 
-      $('showHeatmapToggle').checked = true;
-      drawCanvas();
-    } catch (e) {
-      alert('Lỗi mô phỏng: ' + e.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = (currentLang === 'vi') ? '▶️ Chạy mô phỏng cho mảnh này' : '▶️ Run Simulation for this piece';
-    }
-  }, 30);
-};
+}
 
-$('showHeatmapToggle').onchange = drawCanvas;
+function testKey(idx) {
+  return JSON.stringify([pieceRows(S, idx), S.spools[idx] || '', +$('simRunsSelect').value]);
+}
+function restorePlayerTest() {
+  const result = playerTests.get(selectedPiece);
+  if (result && result.key === testKey(selectedPiece)) renderPlayerTest(result.sim);
+}
+async function runPlayerTests(isAll, split) {
+  if (testBusy) return;
+  const indices = isAll ? [...Array(pieceCount(S)).keys()] : [selectedPiece];
+  if (!split && !(S.spools[selectedPiece] || '').trim()) {
+    alert(currentLang === 'vi' ? 'Hãy chia cuộn cho mảnh này trước.' : 'Split this piece first.');
+    return;
+  }
+  const runs = +$('simRunsSelect').value || 50;
+  const progress = $('testProgress');
+  testBusy = true;
+  const surfaces = [document.querySelector('header'), document.querySelector('main')];
+  surfaces.forEach(el => el.inert = true);
+  progress.hidden = false;
+  if (split) { snapshot(); $('seedInput').value = Math.floor(Math.random() * 999999) + 1; }
+  let completed = 0;
+  try {
+    for (const idx of indices) {
+      progress.textContent = (currentLang === 'vi' ? 'Đang chia / test mảnh ' : 'Processing piece ') + (idx + 1) + ' · ' + (completed + 1) + '/' + indices.length;
+      await new Promise(resolve => setTimeout(resolve, 30));
+      if (split) splitOnePiece(idx, 3);
+      playerTests.delete(idx);
+      const rows = pieceRows(S, idx), spoolStr = (S.spools[idx] || '').trim();
+      if (spoolStr) {
+        const lv = L.levelFromBaked(idx + 1, S.name, rows, spoolStr);
+        const sim = L.humanSim(lv, { runs, hearts: 3 });
+        playerTests.set(idx, { key: testKey(idx), sim });
+      }
+      completed++;
+    }
+    progress.textContent = (currentLang === 'vi' ? 'Đã xử lý ' : 'Processed ') + completed + '/' + indices.length + (currentLang === 'vi' ? ' mảnh · ' : ' pieces · ') + runs + (currentLang === 'vi' ? ' lượt / nhóm. Mảnh trống được bỏ qua.' : ' runs / persona. Empty pieces skipped.');
+  } catch (e) {
+    progress.textContent = (currentLang === 'vi' ? 'Dừng ở mảnh lỗi: ' : 'Stopped on error: ') + e.message;
+  } finally {
+    solCache = null;
+    testBusy = false;
+    surfaces.forEach(el => el.inert = false);
+    refreshUI();
+  }
+}
+$('runSimBtn').onclick = () => runPlayerTests(false, false);
+$('simRunsSelect').onchange = () => refreshUI();
 
 // START
 buildSources();
@@ -2876,6 +2691,7 @@ if (L.makePictures && L.makePictures().length > 0) {
 }
 setLang(currentLang);
 checkServerStatus();
+requestAnimationFrame(fitCanvas);
 </script>
 </body>
 </html>

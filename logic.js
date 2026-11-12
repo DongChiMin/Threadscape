@@ -589,7 +589,7 @@ Y7 V3 P6 P2 P1 P1 P1 P1 T4 T1 K3 K2 C2 C2 C1 C1 C1 C1 C1
     if(solveColor(st,color,{limit:5000}).status==='unsolvable'){rej++;p.forEach(i=>st.stitched.delete(i));sp.done=false}}}
   return[rej,att]}
  function splitLevel(rows,o={}){
-  const {diff=3,seed=1,name='Level',number=0,minLen=2,maxSpools=12,cands=24,runs=8}=o,target=o.target??TRAP_TARGET[diff],rng=mulberry32(seed*7919+diff*31+5);
+  const {diff=3,seed=1,name='Level',number=0,minLen=2,maxSpools=12,cands=24,runs=8,preferLongSpools=false}=o,target=o.target??TRAP_TARGET[diff],rng=mulberry32(seed*7919+diff*31+5);
   const level=parseLevel(name,rows,number),A=adj(level.w,level.h),colors=COLORS.split('').filter(c=>level.cells.includes(c)),picks=[];
   for(const color of colors){const cs=level.cells.map((x,i)=>x===color?i:-1).filter(i=>i>=0),comps=colorComps(A,cs),seen=new Map();
    const t0=Date.now();for(let c=0;c<cands;c++){if(c>2&&seen.size&&Date.now()-t0>(o.budgetMs??1200))break;let lens=[];const mode=c%6;
@@ -600,16 +600,33 @@ Y7 V3 P6 P2 P1 P1 P1 P1 T4 T1 K3 K2 C2 C2 C1 C1 C1 C1 C1
     if(solveColor(makeState(level,new Set(),spools),color,{limit:8000}).status!=='solvable'){seen.set(key,null);continue}
     const [rej,att]=trapCount(level,color,lens,rng,runs);seen.set(key,{lens,rej,att,rate:att?rej/att:0})}
    let list=[...seen.values()].filter(Boolean);
+   // Add balanced and long-with-short-tail candidates without displacing the
+   // original search or consuming its random stream for subsequent colours.
+   if(preferLongSpools){const extraRng=mulberry32(seed*131+color.charCodeAt(0));
+    for(let c=0;c<6;c++){let lens=[];
+     for(const comp of comps){const n=comp.length,kmax=Math.max(1,Math.min(7,n/minLen|0));
+      const count=Math.min(kmax,Math.max(1+(c/2|0),Math.ceil(n/(o.maxSpoolLen??22))));
+      lens=lens.concat(n<count*minLen?[n]:Array.from({length:count},(_,i)=>c%2===0?Math.floor(n/count)+(i<n%count?1:0):i===0?n-(count-1)*minLen:minLen))}
+     lens.sort((a,b)=>b-a);const key=lens.join();if(seen.has(key))continue;
+     const result=solveCells(level.w,level.h,cs,lens,8000);if(result.status!=='solvable')continue;
+     const [rej,att]=trapCount(level,color,lens,extraRng,runs),entry={lens,rej,att,rate:att?rej/att:0};seen.set(key,entry);list.push(entry)
+    }
+   }
    // fallback: spools cut from random walks always tile the colour (blobby regions often have no Hamiltonian-path split)
-   for(let t=0;!list.length&&t<40;t++){const paths=partition(A,cs,rng,{minLen,prefLen:minLen,kmin:1,kmax:Math.max(2,Math.ceil(cs.length/5)),torn:0});if(!paths)continue;const lens=paths.map(p=>p.length).sort((x,y)=>y-x),key=lens.join();if(seen.has(key))continue;const [rej,att]=trapCount(level,color,lens,rng,runs);const e={lens,rej,att,rate:att?rej/att:0};seen.set(key,e);list.push(e)}
+   for(let t=0;!list.length&&t<40;t++){const paths=partition(A,cs,rng,{minLen,prefLen:preferLongSpools?Math.max(3,minLen):minLen,kmin:1,kmax:Math.max(2,Math.ceil(cs.length/5)),torn:0});if(!paths)continue;const lens=paths.map(p=>p.length).sort((x,y)=>y-x),key=lens.join();if(seen.has(key))continue;const [rej,att]=trapCount(level,color,lens,rng,runs);const e={lens,rej,att,rate:att?rej/att:0};seen.set(key,e);list.push(e)}
    if(!list.length)throw Error('no valid split for colour '+color+' in '+name+' (check for isolated single cells)');
    picks.push({color,list,cur:null})}
-  const score=x=>Math.abs(x.rate-target)+x.lens.length*.002+Math.max(0,x.lens[0]-24)*.006; // very long single threads are tedious to draw
-  for(const p of picks)p.cur=p.list.slice().sort((x,y)=>score(x)-score(y))[0];
+  // Editor ranks lexicographically: fewer tiny spools, fewer total spools, then
+  // trap target. A noisy trap estimate must never reward fragmenting a good path.
+  const compare=(a,b)=>preferLongSpools
+   ?a.lens.filter(n=>n<=2).length-b.lens.filter(n=>n<=2).length||a.lens.length-b.lens.length||Math.abs(a.rate-target)-Math.abs(b.rate-target)
+   :score(a)-score(b);
+  const score=x=>Math.abs(x.rate-target)+x.lens.length*.002+Math.max(0,x.lens[0]-24)*.006;
+  for(const p of picks)p.cur=p.list.slice().sort(compare)[0];
   // keep the tray within budget: shrink the colour with most spools to its closest-to-target split that has fewer spools
   let guard=0;while(picks.reduce((x,p)=>x+p.cur.lens.length,0)>maxSpools&&guard++<40){
    const p=picks.filter(q=>q.list.some(x=>x.lens.length<q.cur.lens.length)).sort((x,y)=>y.cur.lens.length-x.cur.lens.length)[0];if(!p)break;
-   p.cur=p.list.filter(x=>x.lens.length<p.cur.lens.length).sort((x,y)=>score(x)-score(y))[0]}
+   p.cur=p.list.filter(x=>x.lens.length<p.cur.lens.length).sort(compare)[0]}
   let id=0,rej=0,att=0,lo=0,hi=0;
   for(const p of picks){for(const l of p.cur.lens)level.spools.push({id:id++,color:p.color,length:l,done:false});rej+=p.cur.rej;att+=p.cur.att;
    lo+=Math.min(...p.list.map(x=>x.rate))*p.cur.att;hi+=Math.max(...p.list.map(x=>x.rate))*p.cur.att}
