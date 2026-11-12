@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -648,6 +648,7 @@ pre.code-out {
       <button class="tab-btn" data-tab="tabHealth">🩺 <span data-i18n="tabHealth">Kiểm tra</span></button>
       <button class="tab-btn" data-tab="tabExport">📤 <span data-i18n="tabExport">Áp dụng & Xuất</span></button>
       <button class="tab-btn" data-tab="tabImport">🖼️ <span data-i18n="tabImport">Nhập ảnh</span></button>
+      <button class="tab-btn" data-tab="tabSim">🤖 <span data-i18n="tabSim">Test người chơi</span></button>
     </div>
 
     <!-- TAB 1: SPOOLS & DIFFICULTY -->
@@ -904,6 +905,64 @@ pre.code-out {
       <button id="generateFromImgBtn" class="primary" disabled>🎨 <span data-i18n="generateGridBtn">Tạo lưới từ ảnh</span></button>
     </div>
 
+    <!-- TAB 6: HUMAN PLAYER SIMULATION & DESIGNER TOOLKIT -->
+    <div class="panel-card" id="tabSim" style="display:none;">
+      <div>
+        <h3 data-i18n="simTitle">🤖 Giả lập người chơi thật (Player Simulation)</h3>
+        <p class="sub-desc" data-i18n="simDesc">
+          Mô phỏng phản xạ thị giác, bẫy tham lam và thói quen giải đố của 3 nhóm người chơi (Casual, Regular, Pro) thay vì đi mò ngẫu nhiên.
+        </p>
+      </div>
+
+      <!-- Simulation Controls -->
+      <div style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="font-size:12px;font-weight:600;" data-i18n="simRuns">Số lượt test mỗi nhóm:</label>
+          <select id="simRunsSelect" style="width:120px;">
+            <option value="20">20 lượt (Nhanh)</option>
+            <option value="50" selected>50 lượt (Chuẩn)</option>
+            <option value="100">100 lượt (Kỹ)</option>
+          </select>
+        </div>
+        <button id="runSimBtn" class="primary" style="width:100%;justify-content:center;font-size:13px;padding:8px 12px;">
+          ▶️ <span data-i18n="runSimBtn">Chạy mô phỏng cho mảnh này</span>
+        </button>
+      </div>
+
+      <!-- Heatmap Toggle -->
+      <div style="background:var(--surface-2);padding:8px 10px;border-radius:8px;border:1px solid #453630;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:12px;">
+          <input type="checkbox" id="showHeatmapToggle">
+          <span style="color:var(--bad);">🔥 <span data-i18n="showHeatmap">Hiện bản đồ nhiệt điểm bẫy (Heatmap) trên Canvas</span></span>
+        </label>
+        <p class="sub-desc" style="margin:4px 0 0 24px;" data-i18n="heatmapDesc">
+          Những ô đỏ rực là nơi người chơi hay rẽ nhầm hoặc dính bẫy kẹt chỉ nhiều nhất.
+        </p>
+      </div>
+
+      <!-- Persona Win Rate Cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="background:#221b18;border:1px solid #453630;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:11px;font-weight:700;color:var(--ok);">🟢 Casual</div>
+          <div style="font-size:18px;font-weight:800;margin:4px 0;" id="winRateCasual">--%</div>
+          <div style="font-size:10px;color:var(--dim);" id="heartsCasual">Người mới / Trẻ em</div>
+        </div>
+        <div style="background:#221b18;border:1px solid #453630;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:11px;font-weight:700;color:var(--warn);">🟡 Regular</div>
+          <div style="font-size:18px;font-weight:800;margin:4px 0;" id="winRateRegular">--%</div>
+          <div style="font-size:10px;color:var(--dim);" id="heartsRegular">Người chơi phổ thông</div>
+        </div>
+        <div style="background:#221b18;border:1px solid #453630;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:11px;font-weight:700;color:var(--bad);">🔴 Pro</div>
+          <div style="font-size:18px;font-weight:800;margin:4px 0;" id="winRatePro">--%</div>
+          <div style="font-size:10px;color:var(--dim);" id="heartsPro">Game thủ giải đố</div>
+        </div>
+      </div>
+
+      <!-- Analytics & Advice Summary -->
+      <div id="simSummaryBox" style="background:var(--surface-2);padding:10px;border-radius:8px;border:1px solid #453630;font-size:12px;color:var(--dim);display:none;"></div>
+    </div>
+
   </aside>
 </main>
 
@@ -961,6 +1020,13 @@ const I18N = {
     tabHealth: "Kiểm tra",
     tabExport: "Áp dụng & Xuất",
     tabImport: "Nhập ảnh",
+    tabSim: "Test người chơi",
+    simTitle: "🤖 Giả lập người chơi thật (Player Simulation)",
+    simDesc: "Mô phỏng phản xạ thị giác, bẫy tham lam và thói quen giải đố của 3 nhóm người chơi (Casual, Regular, Pro) thay vì đi mò ngẫu nhiên.",
+    simRuns: "Số lượt test mỗi nhóm:",
+    runSimBtn: "Chạy mô phỏng cho mảnh này",
+    showHeatmap: "Hiện bản đồ nhiệt điểm bẫy (Heatmap) trên Canvas",
+    heatmapDesc: "Những ô đỏ rực là nơi người chơi hay rẽ nhầm hoặc dính bẫy kẹt chỉ nhiều nhất.",
     infoTitle: "Thông tin Level",
     tapModeLabel: "Chế độ tranh Tapestry (Lưới gồm nhiều mảnh 8x8)",
     tapModeHelp: "Bật để tạo tranh lớn ghép từ các mảnh 8x8. Tắt nếu chỉ muốn tạo 1 màn chơi nhỏ (Mini-level).",
@@ -1038,6 +1104,13 @@ const I18N = {
     tabHealth: "Health Check",
     tabExport: "Apply & Export",
     tabImport: "Import Image",
+    tabSim: "Player Sim",
+    simTitle: "🤖 Human Player Simulation",
+    simDesc: "Simulates visual heuristics, greedy traps, and cognitive puzzle habits across 3 personas (Casual, Regular, Pro) instead of random walking.",
+    simRuns: "Runs per persona:",
+    runSimBtn: "Run Simulation for this piece",
+    showHeatmap: "Show Trap Heatmap on Canvas",
+    heatmapDesc: "Bright red cells mark where players most frequently take wrong turns or deadlock.",
     infoTitle: "Level Info",
     tapModeLabel: "Tapestry Mode (Grid of 8x8 pieces)",
     tapModeHelp: "Turn on for big pictures made of 8x8 pieces. Turn off for a single small level (Mini-level).",
@@ -2677,6 +2750,121 @@ window.addEventListener('keydown', e => {
   const toolMap = { p: 'pen', l: 'line', f: 'fill', e: 'erase', i: 'pick' };
   if (toolMap[e.key.toLowerCase()]) setTool(toolMap[e.key.toLowerCase()]);
 });
+
+// =====================================================================
+// HEATMAP OVERLAY & HUMAN SIMULATION INTEGRATION
+// =====================================================================
+let currentHeatmapData = null;
+
+function drawHeatmapOverlay(isFocus, b) {
+  if (!currentHeatmapData || !currentHeatmapData.length) return;
+  const maxHeat = Math.max(...currentHeatmapData);
+  if (maxHeat <= 0) return;
+
+  const offsetX = isFocus ? 0 : b.x;
+  const offsetY = isFocus ? 0 : b.y;
+
+  for (let cellIdx = 0; cellIdx < 64; cellIdx++) {
+    const heat = currentHeatmapData[cellIdx];
+    if (!heat) continue;
+
+    const px = (offsetX + (cellIdx % 8) + 0.5) * cellSize;
+    const py = (offsetY + Math.floor(cellIdx / 8) + 0.5) * cellSize;
+    const intensity = Math.min(1, heat / maxHeat);
+
+    ctx.beginPath();
+    ctx.arc(px, py, cellSize * (0.28 + intensity * 0.18), 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 59, 48, ${0.35 + intensity * 0.55})`;
+    ctx.fill();
+    ctx.strokeStyle = '#ff3b30';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(cellSize * 0.32)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(heat, px, py);
+  }
+}
+
+$('runSimBtn').onclick = () => {
+  const spoolStr = (S.spools[selectedPiece] || '').trim();
+  if (!spoolStr) {
+    alert((currentLang === 'vi') ? 'Mảnh này chưa có cuộn chỉ! Hãy bấm "Chia chỉ mảnh này" ở tab Cuộn chỉ trước.' : 'No spools for this piece! Split spools in the Spools tab first.');
+    return;
+  }
+
+  const btn = $('runSimBtn');
+  btn.disabled = true;
+  btn.textContent = (currentLang === 'vi') ? '⏳ Đang giả lập 3 nhóm người chơi...' : '⏳ Simulating 3 personas...';
+
+  setTimeout(() => {
+    try {
+      const rows = pieceRows(S, selectedPiece);
+      const lv = L.levelFromBaked(selectedPiece + 1, S.name, rows, spoolStr);
+      const runs = +$('simRunsSelect').value || 30;
+      const sim = L.humanSim(lv, { runs, hearts: 3 });
+
+      currentHeatmapData = sim.heatmap;
+
+      const cRate = Math.round(sim.personas.casual.winRate * 100);
+      const rRate = Math.round(sim.personas.regular.winRate * 100);
+      const pRate = Math.round(sim.personas.pro.winRate * 100);
+
+      $('winRateCasual').textContent = cRate + '%';
+      $('winRateRegular').textContent = rRate + '%';
+      $('winRatePro').textContent = pRate + '%';
+
+      $('heartsCasual').textContent = (currentLang === 'vi') ? `Mất ~${sim.personas.casual.avgHeartsLost} tim` : `~${sim.personas.casual.avgHeartsLost} hearts lost`;
+      $('heartsRegular').textContent = (currentLang === 'vi') ? `Mất ~${sim.personas.regular.avgHeartsLost} tim` : `~${sim.personas.regular.avgHeartsLost} hearts lost`;
+      $('heartsPro').textContent = (currentLang === 'vi') ? `Mất ~${sim.personas.pro.avgHeartsLost} tim` : `~${sim.personas.pro.avgHeartsLost} hearts lost`;
+
+      const box = $('simSummaryBox');
+      box.style.display = 'block';
+
+      let diffTag = '', diffColor = '', advice = '';
+      if (rRate >= 85) {
+        diffTag = (currentLang === 'vi') ? '🟢 MỨC ĐỘ: DỄ' : '🟢 DIFFICULTY: EASY';
+        diffColor = 'var(--ok)';
+        advice = (currentLang === 'vi')
+          ? 'Người chơi phổ thông giải rất mượt (thắng ~' + rRate + '%). Phù hợp cho các màn mở đầu tranh (ít ức chế, flow tốt).'
+          : 'Regular players solve smoothly (~' + rRate + '% win). Great for introductory pieces.';
+      } else if (rRate >= 50) {
+        diffTag = (currentLang === 'vi') ? '🟡 MỨC ĐỘ: VỪA PHẢI (CHUẨN)' : '🟡 DIFFICULTY: BALANCED';
+        diffColor = 'var(--warn)';
+        advice = (currentLang === 'vi')
+          ? 'Màn có độ thử thách tốt (thắng ~' + rRate + '%). Có một vài ngã rẽ khiến người chơi phải cân nhắc kỹ.'
+          : 'Good balanced challenge (~' + rRate + '% win). Has interesting decision points.';
+      } else {
+        diffTag = (currentLang === 'vi') ? '🔴 MỨC ĐỘ: THỬ THÁCH / KHÓ' : '🔴 DIFFICULTY: HARD / TRICKY';
+        diffColor = 'var(--bad)';
+        advice = (currentLang === 'vi')
+          ? 'Màn rất nhiều bẫy (thắng chỉ ~' + rRate + '%). Người chơi dễ mất tim nếu không tính toán trước. Thích hợp làm mảnh cao trào của tranh.'
+          : 'High trap risk (~' + rRate + '% win). Players frequently lose hearts. Ideal for climax piece.';
+      }
+
+      box.innerHTML = `
+        <div style="font-weight:700;color:${diffColor};margin-bottom:6px;">${diffTag}</div>
+        <div style="margin-bottom:4px;">⏱️ <b>Thời gian giải ước tính:</b> ~${sim.estSeconds} giây</div>
+        <div style="margin-bottom:6px;">🔀 <b>Độ phức tạp ngã rẽ:</b> ${Math.round(sim.ambiguityScore * 100)}% (${sim.junctionCells} ô ngã ba/ngã tư)</div>
+        <div style="color:var(--ink);background:rgba(0,0,0,0.25);padding:8px;border-radius:6px;border-left:3px solid ${diffColor};">
+          💡 <b>Nhận xét:</b> ${advice}
+        </div>
+      `;
+
+      $('showHeatmapToggle').checked = true;
+      drawCanvas();
+    } catch (e) {
+      alert('Lỗi mô phỏng: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = (currentLang === 'vi') ? '▶️ Chạy mô phỏng cho mảnh này' : '▶️ Run Simulation for this piece';
+    }
+  }, 30);
+};
+
+$('showHeatmapToggle').onchange = drawCanvas;
 
 // START
 buildSources();

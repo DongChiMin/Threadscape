@@ -1,4 +1,4 @@
-const Logic=(()=>{
+﻿const Logic=(()=>{
  // Pure game logic (no DOM). Source of truth; `node build.js` splices it into index.html.
  const COLORS='RGBYVPONTKC'; // R coral, G leaf, B sky, Y sunflower, V violet, P pink, O orange, N brown, T teal, K charcoal, C ivory
  const DIFFICULTY=[ // tunable: spools per color (kmin..kmax), min spool length, anchors/holes, candidates tried
@@ -131,6 +131,112 @@ const Logic=(()=>{
    if(h<=0||stuck)fails++}
   return fails/runs}
 
+
+ // ---- human cognitive simulation ----
+ function humanPath(state,spool,persona,rng){const {level}=state,A=adj(level.w,level.h),cs=remaining(state,spool.color);
+  if(!cs.length)return null;const rem=new Uint8Array(level.w*level.h);cs.forEach(c=>rem[c]=1);
+  const deg=new Int32Array(level.w*level.h);
+  cs.forEach(c=>{let d=0;for(const n of A[c])if(rem[n])d++;deg[c]=d});
+  const starts=cs.slice();
+  starts.sort((a,b)=>{
+   const wA=(persona==='pro')?(deg[a]===1?-100:deg[a]):(persona==='regular')?(deg[a]===1?-50:deg[a]):(rng()*10);
+   const wB=(persona==='pro')?(deg[b]===1?-100:deg[b]):(persona==='regular')?(deg[b]===1?-50:deg[b]):(rng()*10);
+   return wA-wB;
+  });
+  for(const s of starts){
+   const vis=new Uint8Array(rem.length),path=[s];vis[s]=1;let steps=0;
+   const go=()=>{
+    if(path.length===spool.length)return true;
+    if(++steps>2500)return false;
+    const head=path[path.length-1],prev=path.length>1?path[path.length-2]:-1;
+    const nx=A[head].filter(n=>rem[n]&&!vis[n]);
+    if(!nx.length)return false;
+    nx.sort((a,b)=>{
+     let scoreA=rng()*2,scoreB=rng()*2;
+     let exitsA=0,exitsB=0;
+     for(const na of A[a])if(rem[na]&&!vis[na])exitsA++;
+     for(const nb of A[b])if(rem[nb]&&!vis[nb])exitsB++;
+     if(persona==='pro'){scoreA+=exitsA*3;scoreB+=exitsB*3}
+     else if(persona==='regular'){scoreA+=exitsA*1.5;scoreB+=exitsB*1.5}
+     if(prev!==-1){
+      const dirX=(head%level.w)-(prev%level.w),dirY=(head/level.w|0)-(prev/level.w|0);
+      const nDirAx=(a%level.w)-(head%level.w),nDirAy=(a/level.w|0)-(head/level.w|0);
+      const nDirBx=(b%level.w)-(head%level.w),nDirBy=(b/level.w|0)-(head/level.w|0);
+      if(nDirAx===dirX&&nDirAy===dirY)scoreA-=2;
+      if(nDirBx===dirX&&nDirBy===dirY)scoreB-=2;
+     }
+     if(persona==='casual'){scoreA+=rng()*4;scoreB+=rng()*4}
+     return scoreA-scoreB;
+    });
+    for(const n of nx){
+     if(persona!=='casual'){
+      let strandsNeighbor=false;
+      for(const neighbor of A[head]){
+       if(rem[neighbor]&&!vis[neighbor]&&neighbor!==n){
+        let avail=0;
+        for(const nn of A[neighbor])if(rem[nn]&&!vis[nn]&&nn!==n)avail++;
+        if(avail===0&&path.length+1<spool.length){strandsNeighbor=true;break}
+       }
+      }
+      if(strandsNeighbor&&rng()>0.15)continue;
+     }
+     vis[n]=1;path.push(n);
+     if(go())return true;
+     path.pop();vis[n]=0;
+    }
+    return false;
+   };
+   if(go())return path;
+  }
+  return null;
+ }
+
+ function humanSim(level,o={}){
+  const runs=o.runs||25,hearts=o.hearts??3,personas=['casual','regular','pro'];
+  const results={},heatmap=new Int32Array(level.w*level.h);
+  for(const p of personas){
+   const rng=mulberry32((o.seed||1)*31+p.charCodeAt(0));
+   let wins=0,totalHeartsLost=0;
+   for(let r=0;r<runs;r++){
+    const spools=level.spools.map(s=>({...s,done:false})),st=makeState(level,new Set(level.prestitch),spools);
+    let h=hearts,stuck=false;const tried=new Set();
+    while(h>0&&spools.some(s=>!s.done)){
+     const open=spools.filter(s=>!s.done&&!tried.has(s.id));
+     if(!open.length){stuck=true;break}
+     let sp;
+     if(p==='pro'||p==='regular'){
+      open.sort((a,b)=>b.length-a.length);
+      sp=(rng()<0.7)?open[0]:open[rng()*open.length|0];
+     }else{
+      sp=open[rng()*open.length|0];
+     }
+     const path=humanPath(st,sp,p,rng);
+     if(!path){tried.add(sp.id);continue}
+     tried.clear();
+     path.forEach(i=>st.stitched.add(i));sp.done=true;
+     const sol=solveColor(st,sp.color,{limit:5000});
+     if(sol.status==='unsolvable'){
+      path.forEach(i=>heatmap[i]++);
+      path.forEach(i=>st.stitched.delete(i));sp.done=false;h--;totalHeartsLost++;
+     }
+    }
+    if(h>0&&!stuck&&spools.every(s=>s.done))wins++;
+   }
+   results[p]={winRate:+(wins/runs).toFixed(2),avgHeartsLost:+(totalHeartsLost/runs).toFixed(2)};
+  }
+  const A=adj(level.w,level.h);
+  let junctionCells=0,totalColored=0;
+  level.cells.forEach((c,idx)=>{
+   if(c!=='.'&&COLORS.includes(c)){
+    totalColored++;let sameNeighbors=0;
+    for(const n of A[idx])if(level.cells[n]===c)sameNeighbors++;
+    if(sameNeighbors>=3)junctionCells++;
+   }
+  });
+  const ambiguityScore=totalColored?+(junctionCells/totalColored).toFixed(2):0;
+  const estSeconds=Math.round(totalColored*1.2+junctionCells*5+level.spools.length*4);
+  return{personas:results,ambiguityScore,junctionCells,totalColored,estSeconds,heatmap:Array.from(heatmap)};
+ }
  // ---- levels ----
  const FIXTURE={name:'First Stitch',rows:['RRRG','RGGG','RRGG'],spools:[{color:'R',length:6},{color:'G',length:6}]};
  const MOTIFS=[ // Levels 2-20. Floss colours use COLORS, '.' is bare fabric and '#' is a tear.
@@ -252,205 +358,209 @@ B20 B8 B3 B1 B1 O2 T5 T3 C5 C4 C3 C1
 B6 B6 B5 B3 B3 B3 B1 B1 B1 C7 C2 C1
 `},
 
-  {id:'moon',name:'Moonlit Clouds',short:'Moon',background:'#17295f',palette:{C:'#efe0a8',B:'#86addb',T:'#5584bc',G:'#34609c',V:'#464f98',K:'#0c1633'},diff:2,diffs:[2,2,5,2,2,2,2,2],cfg:{},art:`
-....CC.. ........
-.CC..... ......CC
+  {id:'moon',name:'Moonlit Clouds',short:'Moonlit',background:'#17295f',palette:{C:'#efe0a8',G:'#34609c',K:'#0c1633',T:'#5584bc',V:'#464f98'},diff:2,diffs:[2,2,2,2,2,2,3,3],cfg:{},art:`
 ........ ........
-..CC..CC ..CCC...
-..CC.... ...CCC..
-......CC ....CCC.
-.....CC. .....CC.
-....CC.. .....CC.
+........ .C......
+.C...... ........
+....C... ..CCC...
+...C.... ....CC..
+........ .....CC.
+......C. .....CC.
+........ .....CC.
+C....... .....CC.
 ........ ....CC..
-......CC CCCCC...
-..BBBB.. CC..CC..
-.BBBBBB. ........
-BBBCCBBB B...CC..
-BBBBBBTT BB......
-BBBBTCCT BB....CC
-BBBBTTTT BBBB....
-TTBBTTTT TCCBB...
-TTTBTTTT TTTBBB..
-TTTTTTTT CCTTTBBB
-TTTTCCTT TTTTTTTB
-TTTTTTTT TTBBBTTT
-GGTTTTTT TTTTTTTT
-KGGTTTTT TTTTTTTT
-KKGGGTTT TTTTTTTT
-KKKGGGGG TTTTTGGK
-KKKKVVVV GGGGGGKK
-KKKKVVVV VVVVVKKK
-KKKKKVVV VVVVKKKK
-KKKKKKVV VVVKKKKK
-KKKKKKKV VVKKKKKK
-KKKKKKVV KKKKKKKK
+..C..... ..CCC...
+........ ........
+.....C.. .C......
+..C..... ........
+........ .....C..
+K....... ........
+K....... .......G
+K....... ......GG
+KK..C... .C...GGG
+KKK..... ...TGGGG
+KGGG.... ..TTGGGG
+KKGGG... TTTGGKGG
+KKKKGGVT TTTGKKKG
+KKKKKTTG TTTGGKGG
+KGGGTGGT TTGKKKKG
+KKGKGGGG GGGGGKKK
+KKKKGGGK GGGGGKGG
+KKKKKGKK KGGGKKKG
+KKKKKGGK GGKKKKKK
+KKKKGGKK GGGGGKGG
+KKKKKKKK KKGKKKKK
 KKKKKKKK KKKKKKKK
 `,spools:`
-C4 C2 C2 C2 C2 C2 C2
-C3 C3 C3 C2 C2 C2
-B15 B11 B4 T8 C2 C2 C2
-B9 C3 C2 C2 C2 C2 C2 C2
-G7 B3 T17 T8 T6 T6 T5 T5 T2 K3 C2
-B9 B3 T14 T7 T6 T4 T4 T4 T4 C2 C2
-G3 G2 V3 V3 V3 V3 V2 V2 K39 K4
-G4 G2 G2 V5 V3 V3 V3 T5 K15 K11 K8 K3
+C1 C1 C1 C1
+C7 C3 C1 C1
+K1 C1 C1 C1 C1
+C6 C1 C1 C1
+G7 G1 G1 V1 T2 T1 K15 K4 C1
+G9 G5 G4 G3 G3 T12 K3 K1 K1 C1
+G5 G4 G4 G3 G1 G1 T1 T1 K22 K12 K7 K3
+G11 G7 G4 G3 G2 G1 T2 K20 K10 K2 K1 K1
 `},
-  {id:'cottage',name:'Meadow Cottage',short:'Cottage',background:'#f7edb7',palette:{K:'#293e12',N:'#4f4c18',B:'#5a6d17',T:'#9a5b38',V:'#809462',G:'#ce7848',R:'#c4ad3a',P:'#c1b88c',O:'#c3d1c4',Y:'#d9d0a1',C:'#d6e9e2'},diff:2,cfg:{},art:`
+
+  {id:'cottage',name:'Meadow Cottage',short:'Meadow',background:'#f7edb7',palette:{B:'#5a6d17',C:'#d6e9e2',G:'#ce7848',K:'#293e12',N:'#4f4c18',R:'#c4ad3a',T:'#9a5b38',V:'#809462',Y:'#d9d0a1'},diff:2,diffs:[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],cfg:{},art:`
 ........ ........ ........
-....BKK. .....CC. .....CC.
-..KBBBKK ....CCCC ..CCCCC.
-KKKBBBKK B....CCC ..C.....
-KBBBKBBK BB.....C .....BBB
-KKBKKKKK BB...CCC CC..BBBB
-.KKKKKKK BB...CC. ...BBBBB
-KKKKKNNK KKK..... ..BBKKBB
-KBBKKNKK KKKRRRR. ..BBBKNN
-KBKKKNKK KBRRRRRR VVBBBKNN
-KKKKKNNK KBVVVVVV VVBBKKNN
-KKKKKNKK KTTTTTTT VVVKBNNN
-KKKNNKKK TTTTTTTT TVVKBNNN
-KKKNNKNN YTTTTGTT TTTBBNNK
-KKBNNNNN YYTTTGGT TTTBBNNK
-KKBBNNNN YYTTTTTT TTTRRRNN
-KKKKKYY. .YYTTTTT YYYRRRNN
-KBBKKY.. ..YYYYYY YYYKBNNK
-BBKKKKKK BBY.NN.N .NNKBNNK
-BKKKKKKK BBY.NN.N .NNKBBBK
-KKKKKKKK BKKK.BBN ..KKKKKK
+...BBBBB .....CC. .....CC.
+..KBBBKB ....CCCC ..CCCCC.
+KBBBBBKK B....CCC ..C...BB
+BBBBKBBK BB.....C ....BBBB
+BKBKKKKK BB...CCC CC.BBBBB
+BKKKKNNK BB...CC. ...BBKBN
+KKKKKNNK KKK..... ..BBKKBN
+KNNKKNKK KBKRRRR. ..BBKKKN
+KBNNKNKK BBRRRRRR VVBNNKKN
+KKKNKNKB BBVVVVVV VVBBNNKN
+.KKNNNKB BTTTTTTT VVVVBBNK
+..KNNKKK TTTTTTTT TVVVVBNK
+.KKNKKBT YTTTTGTT TTVVVBNK
+.KBNKBT. .YTTTGGT TTTBVVNK
+KKNNKT.. YYTTTTTT TTTTRRNN
+KKNKKK.. .YYTTTTT TTTTRRNN
+KBNKKKNN N.YYYYYY YYYKRRNK
+BBNKKKBN NBY.NN.N .NYKBRNK
+BKKKKBBN BBY.NN.N .NYKBBBK
+KKKKKKBB BKK....N ..YKKKKK
 KKBBBBBK KKKKKBBB KKKKKKKK
-BBBYBVVV BBBBBBBB RRRBBBBB
-YYYYYYVV BBBBBBVV RRRRRBBB
-VVYYNNVV BBBBBBBB RRRRRRVV
-VVBBBBBV BBBBBRRR RBBBVVVV
-VBBBBBBB BBBRRRRR VVVVVVVV
-VBBBBB.. BBBBVVVV VVVVVBBB
-VRRBBYYY BVVVVV.. ..YVBBBB
-VBBBBBBB BBVVVYY. .YYBBBBK
-VVVBBBBB BBVVNNYY YYBBBBKK
-GGVVVVBB VVVVNBBB BBBBKKKK
-GGVVVVVV VBBBBBBB BBBBGKKK
-BBVVVVVV VVVVVVVV BBBKGGGK
-BGKKBBGG BBBBBBBB BBBKGGGK
-GGGKKGGG BBBBBBBR BBKKKKKK
-GGGKGKKG BBBBBBBR RRKKRKBB
-KKKKGGKK KKKKKRBK KKKRRKBB
-KKKKKKKK KKKKKRKK KKKKKKKK
+BBBBBBBV BBBBBBBR RRBBBBBB
+BBBBVVVV BBBBBBVV RRBBBBBB
+BBBVVVVV BBBBBBBB RRRRRRRR
+BBVVVVVV BBBBBRRR RRRRRRRR
+BBVVVV.. ..BRRRRR VVVVVVVV
+VVVV.... ..YRRVVV VVVVVBBB
+VVVVNN.Y YYRRVV.. ..YVBBBB
+VVVVNVNR NRRVVYY. .YYBBBBK
+VVVVVRRR RRVVNNYY YYNBBBKK
+GGVRRRRR VVVVNBBN BBNBKKKK
+RRRRRRRV VBBBBBBB BBBBKKKK
+RRRRRVVV VVVVVVVV BBBKGGGK
+BGKKBBBB BBBBBBBB BBBKGRGK
+GRGKKKBB GBBBBBBK BBGGKGKK
+GKKGGKKG RGBBGBBK KGRGGGKK
+KKGRRGKG GKKGRGKK KKGKGGKK
+KKGGGKKK KKKKGKKK KGGKKKKK
 KKKKKKKK KKKKKKKK KKKKKKKK
 `,spools:`
-B3 B3 B3 B2 B2 N2 K8 K8 K6 K6 K3 K2
-B3 B2 B2 K3 C4 C3 C2 C2 C2 C2
-B3 B3 B2 B2 B2 B2 B2 K2 C8 C2
-B3 B3 N8 N5 N3 N2 N2 K22 K6 K5 K5
-R10 G3 B2 Y3 Y2 V3 V3 T22 T9 K4 K2
-R3 B8 B6 V5 V4 N18 T4 T4 T2 K4 K2 K2
-B5 B5 B4 Y4 Y3 Y3 V3 V2 K21 K5 K3 K3
-B19 B5 Y8 Y2 V2 N3 N2 N2 T5 K3 K3 K2
-R8 R3 B8 B5 Y3 Y3 N4 N4 N2 K12 K5 K3
-R2 G2 B31 B2 Y3 Y2 V15 V3 N2
-R6 R2 B22 B3 B3 Y2 Y2 V6 V5 V4 V3 N3
-R7 B12 B5 B3 B2 Y3 Y2 V17 V3 K3 K2 K2
-G7 G6 G3 G2 B3 B2 V7 V5 K27 K2
-R2 R2 B21 B7 B2 V7 V2 K8 K8 K3 K2
-R3 R2 G3 G2 G2 B12 B4 K12 K10 K7 K4 K3
+B9 B6 B4 B4 N4 K7 K7 K4 K4 K1 K1
+B4 B3 K3 C4 C4 C4 C3
+B5 B4 B4 B4 N2 K3 C8 C2
+B2 B1 B1 B1 B1 N8 N5 N4 T1 T1 T1 K7 K7 K6 K6 K4
+R10 G3 B3 B3 Y3 Y1 V6 T25 T6 K1 K1
+R2 B5 B4 B1 V13 V4 N6 N4 N3 T7 T3 K4 K3 K3
+B18 B4 B3 V5 N4 N3 K11 K10 K3 K1
+R1 B13 B4 B3 Y5 Y5 V2 N4 N3 N2 T5 K7
+R5 R4 B12 B4 Y6 N4 N2 T4 K14 K5
+R9 G2 B7 Y1 V23 V10 V1 N3 N1
+R10 R6 B14 B2 Y4 Y2 Y1 V7 V6 N3 N1 N1
+R16 B15 B2 Y5 V7 V7 N2 K4 K3
+R12 R2 R1 G4 G2 G2 G2 G1 G1 G1 B6 B1 V4 K14 K7 K4
+R1 R1 G1 G1 G1 G1 G1 G1 G1 B11 B7 B4 B3 V9 K17 K4
+R1 R1 G8 G5 G3 G1 B12 K8 K8 K6 K5 K3 K2 K1
 `},
-  {id:'jelly',name:'Starlit Jellyfish',short:'Jellyfish',background:'#161615',palette:{K:'#1d2949',N:'#142e78',B:'#4b59aa',T:'#327c7b',V:'#167fc0',G:'#44b2e1',R:'#9ebedd',C:'#f5fbfb'},diff:3,cfg:{},art:`
+
+  {id:'jelly',name:'Starlit Jellyfish',short:'Starlit',background:'#161615',palette:{B:'#4b59aa',C:'#f5fbfb',G:'#44b2e1',K:'#1d2949',N:'#142e78',R:'#9ebedd',T:'#327c7b',V:'#167fc0'},diff:3,diffs:[3,3,3,3,3,3,3,3,3,3,3,3],cfg:{},art:`
 ........ ...CCCCC C.......
-........ ..CCTTTT CCC...CC
-.......C CCCCNNNN TTCC...C
-.......C NNNNNNNN KKCCC...
-..CC...G BBBBBBBB KKKCCC..
-..CC..CG GGGGGVVV NNKKTC..
-......CG CGGGGGVV NNNKTCC.
-......CG CGGGGGGG VVNKTCC.
-...CC.CC CCCCCCCC GGBBBTC.
-....C..N VKKKKVVC GGVBBTC.
-.......N VKKGGGVV KGVVBCC.
-..C...NN VKKGGGVV KKBBBC..
-..C...NV VKGGGGVV GNNVCC..
-....VVVV .GGGGGBB G.VV....
-....V.V. NNGGGGBG GVV.....
-.....RRR NNGGKKBG GVV.....
-..NNNN.R NNVVKKRR VVV.....
-..NNNN.R NVVVKKRN VVV.....
-.NNNN..R NVVVKRRN V.V.....
-.NNNN.RR NNRKKRNN N.V..CC.
-.NNN..RN NNRKBBNN N..K..C.
-.RRKKGRN NNRKKBNN N.KK....
-.RRKKGRN N.KKKNNN ..K.....
-...KGGRN NKKKKN.N ..K.....
-..KK.NNN NKKKRRK. KKK.....
-..K..NNN NKKKR.K. .V.CC...
-.KK..NNN GGKK..K. .V..C...
-RR...RKK ..K...K. .VV.....
-.R...RK. ..K...RR ........
+.....C.. ..CTTTTT TCC....C
+..C....C CCNNNNNN TTTC..C.
+.C.C...C NNNNNNNN KKTTC..C
+..C...CG BBBBBBBB KKKTTC..
+......CG GGGGGVVV NNGGTC..
+......CG GGGCGGVV CNNGGTC.
+......CG GGGCGGGG CVNKTTC.
+......CC GGGCCCCG CGBBBTC.
+...C...N CCCCKVVC CGVBBTC.
+..C.C..N VKKGG.VV CCVCBCC.
+...C..NN VKKG..VV KCCBBC..
+......NV ..GG.GB. GNCCCC..
+.C..VVV. .GG..GB. G.VC....
+....V... NN..G.B. G.V.....
+...VV..R N..GK.B. G.V.....
+..NN...R ..VV..R. V.V.....
+..N..NNR RVV.K.R. V.V.....
+.NN.N..R RV.V..R. V.V.....
+.N..N.RR RN...RN. N.V..CC.
+.N.N..RR NN..BBN. N..K..C.
+...KKGNN N..KKBN. N.KK....
+..RKKNNN ...KKN.. ..K.....
+...KGNR. .KKK...N ..K.....
+..KK.... NK..R... KKK.....
+..K..N.N NK.KR.K. .V.CC...
+.KK..N.N GG.K..K. .V..C...
+RR...R.K ......K. .VV.....
+.R....K. ..K...RR ........
 ........ ..VV..R. ........
 ........ V....... ........
 ........ V....... ........
 `,spools:`
-G2 G2 C3 C2 C2 C2
-G15 G2 B8 V3 V2 N10 N2 T2 T2 C9 C2 C2
-V2 N3 N3 T3 T2 K5 K4 C10 C3 C3 C2 C2
-R3 V5 V2 N3 N2 C3 C2 C2
-G21 G2 B2 B2 V8 V4 N4 K7 K2 K2 C7 C2
-G5 G4 B5 B4 V7 V3 N2 T2 K3 C3 C2 C2
-R9 R4 G2 G2 N19 N4 K3 K2
-R4 R3 R2 B3 V5 V3 N8 N7 N6 N4 K12 K5
-V4 V3 V2 N3 K3 K2 C3
-R3 R2 N7 N2 K3 K3 K2
-R3 R3 G2 V2 V2 N2 K10 K2 K2
-V2 V2 K3 C3
+G4 C4 C2 C1 C1 C1 C1 C1
+G11 G6 B8 V5 N14 T5 C5 C2 C2 C1
+G4 V1 N5 T9 T3 K5 K1 C2 C2 C2 C2 C1 C1 C1 C1 C1 C1
+R1 V6 V1 N5 C2 C1 C1 C1 C1 C1
+G7 G3 G2 G1 G1 G1 B4 V6 V2 N3 K4 K1 K1 C8 C1
+G4 G2 B5 B3 V3 V2 N1 T2 K1 C9 C7 C1
+R7 R1 R1 G1 G1 N7 N6 N2 N2 N1 K5
+R3 R3 R1 B3 V5 V1 N4 N3 N1 N1 K7 K1
+V4 V3 N3 K5 C3
+R3 R1 N2 N2 K5 K1 K1
+R3 R2 G2 V2 V2 N2 K3 K2 K2 K1
+V4 K3 C3
 `},
-  {id:'fox',name:'Fox in Bloom',short:'Fox',background:'#295d56',palette:{K:'#3c281c',N:'#b23c16',B:'#49855e',T:'#b6616d',V:'#8d8920',G:'#e46d1c',R:'#8ba772',P:'#c6868f',O:'#94a0a6',Y:'#cbc040',C:'#d1b4b4'},diff:3,cfg:{},art:`
+
+  {id:'fox',name:'Fox in Bloom',short:'Fox',background:'#295d56',palette:{B:'#49855e',C:'#d1b4b4',G:'#e46d1c',K:'#3c281c',N:'#b23c16',O:'#94a0a6',P:'#c6868f',R:'#8ba772',T:'#b6616d',V:'#8d8920',Y:'#cbc040'},diff:3,diffs:[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],cfg:{},art:`
 TTTTTTTT TTTPPPRR RRRRRRCC PPTTTTTT
 TTTTTTTT TTTPPPRR RRRRRRCC PPTTPTTT
-TTTTPPTT TPTPPCCR RRRRRRRR PPPTPTTT
-TTTTTTTT PPTTPPCC RRRRRRRR PPPTPTTT
-TPPPPTTP PPTTCCCC RRRRRRRR PPPPTTTT
-TPPPPTTP PPPPCCCC RRRRRRRR RPPPPPPT
-TTTPPCCR PPPPCRCR RRRRRRRR RPPPPCCT
-TTTCCCRR PPPPPRRR RRRRRRRR PPPPPPPP
-BBBKBBBB RRRRRRRR CCYYCCRR RRRPPTTT
-BBBKBKKK BRRRRRRR CCYYCCRR RRRRBBCC
+TTTTPPTT TPTPPCCR RRRRCRCC PCPTPTTT
+TTTTTTTT TTCTPPCC RRRRRCCC PPPTPTTT
+TPTTPTTP PCTTPPPC CRRRRCRR PPCPTTTT
+TPCTPTTP PPCPPCCC RCRRRRCR RCPPPPPT
+TTTPPCCC PPCPCRCR RRRRRRRR CCPPPCCT
+TTTCCCRR CCCPCCRR KRRRRKRR PCCCPPPP
+TKBKBBBK RCCCCRRR CKRRKCRR CRRCCTTT
+KBTKBKKK BRCRRRRR CKRRKCRR RRRRBBCC
 BBBKKKBB BBBBBRRR CGGGGCRR RRBBBBKB
 BBKK.KBB BBBBBBBG GGNNGGRB BBBBBBKB
-.KK..KKB BBBYYYYG NNNNBBBB BBBBBBBK
-KK..KKBB BBGGGYYN CCNNCCBB BBBBBBBK
-K...K..B .GGGGGGN OCCCCBBB BBBBBBBB
-K..KKCC. .GGGGGGN OOOOOBBB BBB..B..
-K.KK...Y NNNGGNGN OOOCYYBB ........
-K.KK...Y NNNGNNGN OOOCY.B. ........
-K.KK..GG NNNNNNNN OOCYY... ........
-K.KKK.GG NNNNNNNN OOCG.CC. ....C...
-K.KK.CCC NNN.NNNN OOGG.C.. ..CCCCC.
-V.KK.CCO NK.KK.NK .NN..... ..CCCCC.
-VVVV.COO .K.K..NK .NK...CC CC.C.CPP
-VVVVVOO. .K.K..KK .NKK..CC CKKK.PPP
-YYYYYYYY KK.V..KK .KK...CC KKKTPPPP
-VVVVVVYY YYYVVVKK .KK..KKK KKKTTT..
-VVVVVVYY YYYYYYKK KKK....P PP.TTT..
-KKKKKKKK KKKVVVYY YYK....P PPP...P.
-KVVKKKKK VVVVVYYY YYYYYYY. ..P.PPPP
-VVVCCPPP VVVVVVVV VVVVYYYY Y..KKCCC
-VVCCCVVP TTVVVVVV VYYYYYYY YYYY.C.C
-VVCCCVVV TTTVVVVV VVVVVVVV VVVYY...
+.KK.PKKB BBBGGGBG NKNNKGBB BBBBBBBK
+KKP.CPCB BBGGGGGN CCNNCCBB BBBBBBBK
+K..CKCCB .GGGGGGN OCKKCBBB BBBBBBBB
+K..KK... GGGGGGGN OOOOOBBB BBB..B..
+K.KK...G NGGGGNGN OOOCGBBB ........
+K.KK...G NNGGNNGN OOOCG.B. ........
+K.KK..GG NNGNNNNN OOCGG... ........
+K.KKKGGG NNNNNNNN OOCG.... ...C....
+K.KK.CCC NNN.NNNN OOGG.... ..CPC...
+V.KK.CCO NK.KK.NK .NN..... ...C..C.
+PCVV.COO .K.K..NK .NK....C .....CPC
+PPCCVOO. .K.K..KK .NK...CP C.K.CPTP
+YYPCCYYY .K.K..KK .KK....C .CKT.CPC
+PPPVVPYY YYYVVVKK .KK..KKK CKKT..C.
+VVKVPPYY YPYYYYYK .KK....P PP.TT...
+CKKKCPPP KCCPVVYY YYK..... PPP...P.
+KCPCPCPK CCPTPYYY YYYYYYY. ..P.PPTP
+CCPVCVPP PPVPVVVV VVVVYYYY Y..KKCPC
+VCPPVPPP PCVVVVVV VYYYYYYY YYYY.C.C
+PPPVVCVC VVVVVVVV VVVVVVVV VVVYY...
 `,spools:`
-R3 P3 P3 P2 P2 P2 P2 T40 T2 C3 C2
-R5 R5 P13 P6 P5 P4 T9 T3 C6 C3 C3 C2
-R28 R9 R8 R7 R3 R3 R2 C4
-R2 P22 P6 P3 P2 P2 T7 T6 T6 T4 T2 C2
-B9 B5 B3 B3 B2 B2 K7 K6 K5 K3 K3 C2
-R14 R4 G12 G3 G2 B8 B4 B4 B2 Y3 Y3 N3
-R7 G6 G2 B13 Y4 O4 O2 N5 N3 C8 C5 C5
-R5 R2 R2 B34 B4 B2 P2 T3 K2 K2 C2
-G4 Y2 V5 V3 V2 O3 O2 K13 K3 K2 C3 C3
-G3 G2 N13 N10 N7 N4 N3 K4 K3 K2 K2
-G3 B3 Y5 O6 O6 N2 N2 K3 C4 C3 C2 C2
-P3 P2 K3 C3 C3 C3 C3 C2 C2
-Y6 Y4 Y2 V12 V9 V5 P2 P2 K11 K3 C5 C3
-Y9 Y5 V8 V7 V6 V4 V3 V3 T5 K6 K3 K2
-Y17 Y3 V4 V4 V3 V2 P2 K4 K3 K2 K2 C2
-Y7 V3 P6 P4 P3 P2 T4 T3 K6 K2 C3 C2
-`}
+R2 P4 P2 P2 P2 T29 T8 T8 C6 C1
+R5 R3 R1 P12 P5 P5 P1 T7 T3 T3 C6 C5 C3 C3 C1 C1
+R23 R18 R7 K1 K1 C10 C1 C1 C1 C1
+R1 P11 P9 P4 P3 P1 T21 T4 C3 C3 C2 C1 C1
+B7 B4 B3 B3 B1 P1 P1 P1 T1 T1 K8 K4 K4 K4 K3 K1 K1 C3 C1 C1
+R10 R1 R1 R1 G19 G2 G1 G1 B18 B1 N3 C4 C1
+R7 R4 G9 B11 O6 N6 N1 K2 K2 K2 K1 K1 C3 C3 C3 C3
+R8 B32 B6 B2 T3 K2 K2 C2 C2 C1
+G4 G3 V2 V1 V1 P3 O5 K13 K5 C5 C2 C1 C1
+G4 G3 G2 N18 N11 N3 N1 K4 K4 K3
+G7 B3 B1 P1 O12 N4 K2 C2 C2 C1 C1
+P1 P1 P1 P1 T1 K1 C1 C1 C1 C1 C1 C1 C1 C1 C1
+Y7 Y2 V3 V3 V2 V1 V1 V1 V1 P8 P5 P4 P3 P2 P1 P1 K3 K1 K1 K1 C3 C2 C1 C1 C1 C1 C1 C1 C1 C1
+Y14 V19 V3 V2 P3 P1 P1 P1 P1 P1 T1 K5 K1 K1 K1 C4 C1
+Y17 Y3 V11 V2 P1 K7 K3 C1
+Y7 V3 P6 P2 P1 P1 P1 P1 T4 T1 K3 K2 C2 C2 C1 C1 C1 C1 C1
+`},
+
  ];
  function makePictures(first=21){
   let n=first;
@@ -518,5 +628,6 @@ Y7 V3 P6 P4 P3 P2 T4 T3 K6 K2 C3 C2
    Object.assign(lv,{hearts:DIFF_HEARTS[diff],pic:pic.id,picName:pic.name,picShort:pic.short,piece:i,pieces:pic.count,px:i%pic.cols,py:i/pic.cols|0,cols:pic.cols});out.push(lv)}
   return out}
 
- return{trapCount,colorComps,adj,splitLevel,levelFromBaked,spoolText,TRAP_TARGET,DIFF_NAME,DIFF_HEARTS,COLORS,regionSize,strandInfo,makePictures,generateTapestry,DIFFICULTY,mulberry32,makeState,neighbors,cell,remaining,lengths,solveCells,solveColor,solve,isSolvable,legalNext,validStarts,analyzeSpool,countPartitions,botSim,failTarget,pathStatus,autoRun,autoStitch,ASSIST,FIXTURE,MOTIFS,parseLevel,generateLevels,metrics};
+ return{trapCount,colorComps,adj,splitLevel,levelFromBaked,spoolText,TRAP_TARGET,DIFF_NAME,DIFF_HEARTS,COLORS,regionSize,strandInfo,makePictures,generateTapestry,DIFFICULTY,mulberry32,makeState,neighbors,cell,remaining,lengths,solveCells,solveColor,solve,isSolvable,legalNext,validStarts,analyzeSpool,countPartitions,botSim,humanSim,failTarget,pathStatus,autoRun,autoStitch,ASSIST,FIXTURE,MOTIFS,parseLevel,generateLevels,metrics};
 })();
+if(typeof module!=='undefined')module.exports=Logic;
