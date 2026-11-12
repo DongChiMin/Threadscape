@@ -1,10 +1,10 @@
 const Logic=(()=>{
  // Pure game logic (no DOM). Source of truth; `node build.js` splices it into index.html.
- const COLORS='RGBYVPONTK'; // R coral, G leaf, B sky, Y sunflower, V violet, P pink, O orange, N brown, T teal, K charcoal
+ const COLORS='RGBYVPONTKC'; // R coral, G leaf, B sky, Y sunflower, V violet, P pink, O orange, N brown, T teal, K charcoal, C ivory
  const DIFFICULTY=[ // tunable: spools per color (kmin..kmax), min spool length, anchors/holes, candidates tried
   {to:5, minLen:2,prefLen:2,kmin:1,kmax:1,pre:0,   torn:0,cands:6},
-  {to:15,minLen:2,prefLen:2,kmin:1,kmax:2,pre:.12, torn:0,cands:40},  // spec says 2-3 spools/color; bot showed that is too trap-heavy
-  {to:20,minLen:1,prefLen:2,kmin:1,kmax:1,pre:.12, torn:3,cands:40}]; // spec 3-5; bot: >1 spool per region is brutal. L16+ may use 1-cell spools but they are penalised
+  {to:15,minLen:2,prefLen:2,kmin:1,kmax:2,pre:.12, torn:0,cands:40,botRuns:16},  // spec says 2-3 spools/color; bot showed that is too trap-heavy
+  {to:20,minLen:1,prefLen:2,kmin:1,kmax:1,pre:.12, torn:3,cands:40,botRuns:16}]; // spec 3-5; bot: >1 spool per region is brutal. L16+ may use 1-cell spools but they are penalised
  const GEN_NODE_LIMIT=20000, GEN_BOT_RUNS=40, DEAD_MAX=300000;
  const failTarget=n=>n<=5?0:Math.min(.28,.05+(n-6)*.016); // target bot fail rate (3 hearts): 5% at L6 rising to ~28% at L20
  const DEAD=new Set(); // known-unsolvable (w,cells,lengths) states; adjacency depends only on w, so it is level-independent
@@ -118,39 +118,41 @@ const Logic=(()=>{
     for(const n of nx){vis[n]=1;path.push(n);if(go())return true;path.pop();vis[n]=0}return false};
    if(go())return path}
   return null}
+ // Naive random player, same rules as the game: pick a spool, drag any complete path. No path for that spool = dead end (the game only
+ // asks for a stitch back, no heart). A heart is lost only when a committed path leaves its colour unsolvable (closed shape that strands cells).
  function botSim(level,runs=40,seed=1,hearts=3,limit=GEN_NODE_LIMIT){const rng=mulberry32(seed);let fails=0;
-  for(let r=0;r<runs;r++){const spools=level.spools.map(s=>({...s,done:false})),st=makeState(level,new Set(level.prestitch),spools);let h=hearts;
-   while(h>0&&spools.some(s=>!s.done)){const open=spools.filter(s=>!s.done),sp=open[rng()*open.length|0],path=randomPath(st,sp,rng);
-    if(!path){h--;continue}
-    path.forEach(i=>st.stitched.add(i));sp.done=true;
+  for(let r=0;r<runs;r++){const spools=level.spools.map(s=>({...s,done:false})),st=makeState(level,new Set(level.prestitch),spools),tried=new Set();let h=hearts,stuck=false;
+   while(h>0&&spools.some(s=>!s.done)){const open=spools.filter(s=>!s.done&&!tried.has(s.id));
+    if(!open.length){stuck=true;break}
+    const sp=open[rng()*open.length|0],path=randomPath(st,sp,rng);
+    if(!path){tried.add(sp.id);continue}
+    tried.clear();path.forEach(i=>st.stitched.add(i));sp.done=true;
     if(solveColor(st,sp.color,{limit}).status==='unsolvable'){path.forEach(i=>st.stitched.delete(i));sp.done=false;h--}}
-   if(h<=0)fails++}
+   if(h<=0||stuck)fails++}
   return fails/runs}
 
  // ---- levels ----
  const FIXTURE={name:'First Stitch',rows:['RRRG','RGGG','RRGG'],spools:[{color:'R',length:6},{color:'G',length:6}]};
- const rings=(w,f)=>Array.from({length:w},(_,r)=>Array.from({length:w},(_,c)=>f(r,c)).join(''));
- const MOTIFS=[ // levels 2..20; R coral, G leaf, B sky, Y sunflower, V violet, P pink, '.' bare fabric
-  ['Flower',['.PPP.','PPYPP','PPYPP','.PPP.','..G..','..G..']],
-  ['Mushroom',['.RRRR.','RPRRPR','RPRRPR','..YY..','..YY..']],
-  ['Jewel',['.RRR.','RPPPR','RPPPR','.RRR.']],
-  ['Fish',['.BBB.Y','BBVBBY','BBVBBY','.BBB.Y']],
-  ['House',['..RR..','.RRRR.','RRRRRR','YYBBYY','YYBBYY','YYVVYY']],
-  ['Star',['..PP..','..YY..','YYRRYY','YYRRYY','.YYYY.','.Y..Y.']],
-  ['Cat',['RR...RR','RRRRRRR','RVRRRVR','RVRRRVR','RRRPPRR','.RRRRR.']],
-  ['Butterfly',['VVV.VVV','VPPRPPV','VVVRVVV','.VVRVV.','..V.V..']],
-  ['Sunflower',['..YYY..','.YYYYY.','YYVVVYY','YYVVVYY','.YYYYY.','..YYY..','...G...','...G...']],
-  ['Lotus',['...PP...','..PPPP..','.PPVVPP.','PPPVVPPP','.PPPPPP.','GGGGGGGG'],{pre:.2}],   // optional 3rd item overrides the tier config (more anchors = smaller regions)
-  ['Owl',['B.BBBB.B','BBBBBBBB','BYYBBYYB','RYYRRYYR','RRRPPRRR','.RRRRRR.','..VV.VV.']], // two-tone body keeps each region <= ~18 cells
-  ['Teapot',['...YY...','.RRRRRR.','VRRPPRRV','VRRPPRRV','.RRRRRR.','..RRRR..']],
-  ['Moon',['..YYYY..','.YYY.PP.','YYY.....','YYY..VV.','YYY.....','.YYY.PP.','..YYYY..']],
-  ['Cherry',['.GGGGGG.','.G....G.','.G....G.','RRR..RRR','RPR..RPR','RPR..RPR','RRR..RRR']],
-  ['Gem',['...RR...','..RRRR..','.RRPPRR.','RRRPPRRR','VVVYYVVV','.VVYYVV.','..VVVV..','...VV...']],
-  ['Tree',['....G....','...GGG...','..GYYGG..','...GGG...','..GPPGG..','.GBBGGGG.','GGVVGGGVV','...RRR...','...RRR...']],
-  // L18-20: many small same-colour regions (difficulty ~ size of a region that must be split across spools)
-  ['Patchwork',rings(9,(r,c)=>['YRP','BVG','PYR'][r/3|0][c/3|0])],              // 3x3 blocks, neighbours always differ
-  ['Rainbow',rings(10,(r,c)=>'YRPBV'[r>>1])],                                   // five 2x10 stripes
-  ['Mosaic',rings(10,(r,c)=>'YRPBVG'[((c>>1)+2*(r>>2>0?1:0))%6])]];             // ten 2x5 / 2x4 tiles
+ const MOTIFS=[ // Levels 2-20. Floss colours use COLORS, '.' is bare fabric and '#' is a tear.
+  ['Flower',['..PP..','.PPPP.','PPYYPP','PPYYPP','.PPPP.','..GGG.','..G...']],
+  ['Toadstool',['..RRRR..','.RRRRRR.','RRCCRRRR','RRCCRRRR','.RRRRRR.','..KKKK..','..CCCC..','..CCCC..']],
+  ['Round Cactus',['..GG..','.GGGG.','GGTTGG','GGTTGG','.OOOO.','..OO..','..OO..']],
+  ['Acorn',['..NN..','..NN..','.NNNN.','.NNNN.','.OOOO.','.OOOO.','..OO..']],
+  ['Blue Shark',['....BB.....','...BBB.....','.BBBBBBB.TT','BBKKBBBBTTT','CCKKCCCCCTT','.CCCCCCC...','....CC.....'],{pre:.08}],
+  ['Potted Poppy',['..RR...','.RRRR..','.ROOR..','..GG...','.GGGTT.','GGGTTT.','..GG...','.OOOOO.','..NNN..','..NNN..'],{pre:.08}],
+  ['Longneck',['.TTTT....','.TTTT....','.GGKKG...','.GGGGG...','.GG......','.GGYY....','.GGYYGG..','.TTTTTTT.','..TTTTTT.','..TT.TT..'],{pre:.08}],
+  ['Desert Cactus',['...GG...','...GG...','.T.GG.G.','TT.GG.GG','TTGGGGGG','.TGGGGG.','...GG...','.OOOOOO.','..NNNN..','..NNNN..'],{pre:.08}],
+  ['Pink Camellia',['GG.PP...','GGPPPP..','.PPCCPP.','RRRYYRRR','RRRYYRRR','.PPCCPP.','..PPPPGG','...PP.GG'],{pre:.08}],
+  ['Honey Jar',['..NNNN..','.NNNNNN.','.YYYYYY.','.YYYYYY.','OOOCCOOO','OOOCCOOO','.YYYYYY.','.YYYYYY.','..NNNN..'],{pre:.08}],
+  ['Hanging Ivy',['...NN...','..NNNN..','.NN..NN.','NN....NN','GGTTTTGG','GGTTTTGG','.GTTTTG.','.OOCCOO.','.OOCCOO.','..OOOO..'],{pre:.24}],
+  ['Ladybug',['...KK...','..KKKK..','.RRKKRR.','RRRKKRRR','ROOKKOOR','ROOKKOOR','.OOKKOO.','..KKKK..'],{pre:.24}],
+  ['Siamese',['KK....KK..','KNNNNNNK..','.NNNNNN...','.NBBNBB...','.NNNNNN...','.CCCCCC.NN','.CCCCCC.NN','.CCCCCCNN.','.NNCCNNN..'],{pre:.04}],
+  ['Potted Tulip',['..RR.RR..','..RRRRR..','..RPPRR..','...PP....','...GG....','.TTGGTT..','TTTGGTTT.','.TTGGTT..','.OOOOOOO.','..ONNNO..','..ONNNO..','...NNN...'],{pre:.08}],
+  ['Leafy Fern',['......GG..','.TT..GGG..','..TT.GG...','..TTTGG...','.TTTTGGGG.','..TTTGGGGG','...TTGGGG.','...OOOO...','..OOOOOO..','...NNNN...','#..NNNN..#','....#.....'],{torn:0,pre:.20}],
+  ['Garden Snail',['...NNN....','..NNNNN...','.NNOOONN..','.NNOOONN..','.NNOOON.GG','..NNNN.GKK','#TTTTTTGGG','TTTTTTGGG.','.GGGGGGG.#','..GGGG.#..'],{torn:0,pre:.16}],
+  ['Flower Basket',['..CC..PP..','.CCCCPPPP.','.CCCCPPPP.','..GGGGGG..','.RRGGGGCC.','RRRGGGCCCC','.RRGGGCCC.','..NNNNNN..','.OOOOOOOO.','#.OOOOOO.#','...NNNN#..'],{torn:0,pre:.04}],
+  ['Watering Can',['......GG..','.....GGGG.','..TT.GG.GG','.TTT.GG.GG','TTTTBBBBG.','.TTTBBBB..','.TTTBBBBB.','#..BBBBBB.','...BBBBBB#','...TTTT#..'],{torn:0,pre:.04}],
+  ['Terrarium',['...NNNN...','..NNNNNN..','.CTTTTTCC.','.CTTTTTCC.','.CGGGGGCC.','.CGGYYGCC.','.CGGYYGCC.','.CTTTTTCC.','#ONNNNNO.#','.ONNNNNO#.'],{torn:0,pre:.08}]];
  function parseLevel(name,rows,number){const w=Math.max(...rows.map(r=>r.length)),cells=[];for(const row of rows)for(let c=0;c<w;c++){const ch=row[c]||'.';cells.push(COLORS.includes(ch)||ch==='#'?ch:'.')}
   return{number,name,w,h:rows.length,cells,spools:[],solution:[],prestitch:new Set()}}
  // randomized self-avoiding walks (Warnsdorff-style) that tile one color's cells; null if min length cannot be met
@@ -209,69 +211,311 @@ const Logic=(()=>{
   if(bad.length)return{kind:lens.length?'size':'nospool',cells:bad.flat(),sizes:bad.map(b=>b.length),lens};
   return{kind:'shape',cells:cs,sizes:[cs.length],lens}}
 
- // ---- tapestries: big pictures cut into 8x8 pieces; each piece is a normal level ----
- function canvasGrid(w,h){const g=Array.from({length:h},()=>Array(w).fill('.'));
-  const each=(f)=>{for(let y=0;y<h;y++)for(let x=0;x<w;x++)f(x,y)},put=(x,y,c)=>{x=Math.round(x);y=Math.round(y);if(x>=0&&y>=0&&x<w&&y<h)g[y][x]=c};
-  const inPoly=(x,y,p)=>{let o=false;for(let i=0,j=p.length-1;i<p.length;j=i++)if((p[i][1]>y)!==(p[j][1]>y)&&x<(p[j][0]-p[i][0])*(y-p[i][1])/(p[j][1]-p[i][1])+p[i][0])o=!o;return o};
-  return{put,w,h,
-   rect:(x,y,rw,rh,c)=>{for(let j=0;j<rh;j++)for(let i=0;i<rw;i++)put(x+i,y+j,c)},
-   disc:(cx,cy,r,c)=>each((x,y)=>{if((x-cx)**2+(y-cy)**2<=r*r)g[y][x]=c}),
-   ring:(cx,cy,r,t,c)=>each((x,y)=>{const d=Math.hypot(x-cx,y-cy);if(d<=r&&d>r-t)g[y][x]=c}),
-   ell:(cx,cy,rx,ry,c)=>each((x,y)=>{if(((x-cx)/rx)**2+((y-cy)/ry)**2<=1)g[y][x]=c}),
-   poly:(p,c)=>each((x,y)=>{if(inPoly(x,y,p))g[y][x]=c}),
-   trail:(pts,rad,c)=>{for(let s=0;s<pts.length-1;s++)for(let t=0;t<=1;t+=.1){const x=pts[s][0]+(pts[s+1][0]-pts[s][0])*t,y=pts[s][1]+(pts[s+1][1]-pts[s][1])*t,r=rad[s]+(rad[s+1]-rad[s])*t;each((px,py)=>{if((px-x)**2+(py-y)**2<=r*r)g[py][px]=c})}},
-   bg:(y0,y1,c)=>{for(let y=y0;y<=y1&&y<h;y++)for(let x=0;x<w;x++)if(g[y][x]==='.')g[y][x]=c},
-   rows:()=>g.map(r=>r.join(''))}}
- const ART={
-  cottage(){const g=canvasGrid(16,16);
-   g.rect(1,1,5,1,'B');g.rect(2,2,3,1,'B');g.disc(12,3,2,'Y');
-   g.rect(10,4,2,4,'N');g.poly([[1,8.5],[7,3],[13,8.5]],'R');g.rect(2,9,10,4,'O');
-   g.rect(6,10,2,3,'N');g.rect(3,10,2,2,'B');g.rect(9,10,2,2,'B');
-   g.rect(14,10,2,3,'N');g.disc(14.5,8,2,'G');
-   g.rect(0,13,16,3,'G');g.rect(1,13,2,1,'P');g.rect(12,14,2,1,'V');g.rect(5,15,2,1,'Y');return g.rows()},
-  fox(){const g=canvasGrid(24,16);
-   g.disc(19,3,2.6,'Y');g.rect(3,1,2,1,'Y');g.rect(9,3,2,1,'Y');g.rect(13,1,2,1,'Y');g.rect(10,6,2,1,'Y');
-   g.ell(12,14,13,3,'G');g.rect(0,13,24,3,'G');
-   g.poly([[0,11],[4,4],[8,11]],'T');g.rect(4,11,1,2,'N');g.poly([[16,11],[20,6],[24,11]],'T');g.rect(20,11,1,2,'N');
-   g.poly([[7.5,11],[4,8],[5,13.5]],'O');g.rect(4,9,1,2,'P');g.ell(11,11,4,2.2,'O');g.disc(15.5,9,2,'O');
-   g.poly([[14,6],[15,8.5],[13,8]],'R');g.poly([[17,6],[18,8],[16,8.5]],'R');g.rect(17,10,2,1,'K');g.rect(16,8,1,1,'K');return g.rows()},
-  koi(){const g=canvasGrid(24,24);
-   g.ring(6,6,5.4,1.2,'T');g.ring(18,18,5.6,1.2,'T');
-   g.disc(18,6,3,'G');g.disc(18,6,1.4,'P');g.rect(18,6,2,1,'V');g.disc(5,19,2.6,'G');g.rect(4,19,2,1,'T');g.rect(20,5,2,1,'T');
-   g.trail([[5,10],[9,9],[13,11],[16,15],[17,19]],[2.2,2.5,2.1,1.6,1],'O');g.trail([[17,19],[19,22]],[1.1,1.8],'R');g.rect(7,8,2,2,'R');g.rect(6,10,1,1,'K');
-   g.trail([[3,14],[6,15],[9,14],[12,18],[11,22]],[1.5,1.8,1.6,1.3,.9],'Y');g.rect(7,14,2,1,'P');g.rect(3,14,1,1,'K');
-   return g.rows()}};
- const TAP=[
-  {id:'cottage',name:'Cottage Garden',short:'Cottage',w:16,h:16,cfg:{minLen:1,prefLen:3,kmin:1,kmax:1,pre:.08,torn:0,cands:30,maxLen:16,botRuns:16,tn:8}},
-  {id:'fox',name:'Fox at Night',short:'Fox',w:24,h:16,cfg:{minLen:1,prefLen:3,kmin:1,kmax:1,pre:.08,torn:0,cands:30,maxLen:16,botRuns:16,tn:12}},
-  {id:'koi',name:'Koi Pond',short:'Koi',w:24,h:24,cfg:{minLen:1,prefLen:3,kmin:1,kmax:1,pre:.1,torn:0,cands:30,maxLen:16,botRuns:16,tn:17}}];
+ // ---- tapestries: each 8-column block is a playable piece ----
  const PIECE=8;
- // tiny leftovers (components < minLen inside a piece) are merged into a neighbouring colour or dropped, so every piece is a valid puzzle
- function tidy(rows,pw,ph,minLen=2){const g=rows.map(r=>r.split('')),h=g.length,w=g[0].length,A=adj(w,h);
-  for(let py=0;py<h;py+=ph)for(let px=0;px<w;px+=pw){const inP=i=>{const x=i%w,y=i/w|0;return x>=px&&x<px+pw&&y>=py&&y<py+ph},seen=new Set();
-   for(let y=py;y<py+ph;y++)for(let x=px;x<px+pw;x++){const i=y*w+x,c=g[y][x];if(!COLORS.includes(c)||seen.has(i))continue;
-    const comp=[i];seen.add(i);for(let k=0;k<comp.length;k++)for(const j of A[comp[k]])if(inP(j)&&!seen.has(j)&&g[j/w|0][j%w]===c){seen.add(j);comp.push(j)}
-    if(comp.length>=minLen)continue;const cnt={};for(const a of comp)for(const j of A[a])if(inP(j)){const d=g[j/w|0][j%w];if(COLORS.includes(d)&&d!==c)cnt[d]=(cnt[d]||0)+1}
-    const best=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0]||'.';for(const a of comp)g[a/w|0][a%w]=best}}
-  return g.map(r=>r.join(''))}
- // oversized single-colour areas are split into two shades (alt colour) so every area stays a fair puzzle
- const ALT={G:'T',T:'G',B:'T',O:'Y',Y:'O',R:'P',P:'R',V:'K',K:'V',N:'O'};
- function shade(rows,pw,ph,max=16){const g=rows.map(r=>r.split('')),h=g.length,w=g[0].length,A=adj(w,h);
-  for(let pass=0;pass<8;pass++){let changed=false;
-   for(let py=0;py<h;py+=ph)for(let px=0;px<w;px+=pw){const inP=i=>{const x=i%w,y=i/w|0;return x>=px&&x<px+pw&&y>=py&&y<py+ph},at=i=>g[i/w|0][i%w],seen=new Set();
-    const bfs=(s,c)=>{const dist=new Map([[s,0]]),q=[s];for(let k=0;k<q.length;k++)for(const j of A[q[k]])if(inP(j)&&!dist.has(j)&&at(j)===c){dist.set(j,dist.get(q[k])+1);q.push(j)}return{dist,q}};
-    for(let y=py;y<py+ph;y++)for(let x=px;x<px+pw;x++){const i=y*w+x,c=g[y][x];if(!COLORS.includes(c)||seen.has(i))continue;
-     const a=bfs(i,c);a.q.forEach(j=>seen.add(j));if(a.q.length<=max)continue;
-     const far=a.q[a.q.length-1],b=bfs(far,c),half=b.q.length>>1,alt=ALT[c];b.q.slice(0,half).forEach(j=>{g[j/w|0][j%w]=alt});changed=true}}
-   if(!changed)break}
-  return g.map(r=>r.join(''))}
- function makePictures(first=21){let n=first;return TAP.map(p=>{const rows=tidy(shade(tidy(ART[p.id](),PIECE,PIECE,2),PIECE,PIECE,p.cfg.region||16),PIECE,PIECE,2),cols=p.w/PIECE,count=cols*(p.h/PIECE),firstNo=n;n+=count;
-   const piece=i=>{const px=i%cols*PIECE,py=(i/cols|0)*PIECE;return rows.slice(py,py+PIECE).map(r=>r.slice(px,px+PIECE))};
-   return{...p,rows,cols,count,first:firstNo,piece}})}
+ const TAPESTRY_CFG={minLen:2,prefLen:3,kmin:1,kmax:1,torn:0,cands:10,botRuns:6};
+ const TAP=[
+  {id:'duck',name:'Duck Pond',short:'Duck',background:'#43d5dc',palette:{K:'#136778',N:'#1693b3',B:'#16a8e0',T:'#e0714b',V:'#33b5c6',G:'#22cfe1',R:'#98a2a6',P:'#9bdeef',O:'#cfe5eb',C:'#f3f8f9'},diff:1,cfg:{},art:`
+BBBBBBBB GGGGBBBB BBBBBBBB
+BBBBGGGG GGGGGGGB BBBBBBBB
+B.BBBGGG GGGGGGGG GGBBBBBB
+BGGBBGGG GBBBGGGG .GGGGBBB
+BBBB.... BBB...GG GG.....B
+..BBBBB. B.B.GGGC GGG.GGG.
+BBBBBBBB BB....CC KC....G.
+.BBBBBBB B...CCCC KCC.....
+BBB..... .....CCC P.......
+........ .....CCC P.......
+....C.CC CCCCCCCC PP......
+..C.CCCC CCCCCCCC CP......
+..C..CCC CCCCCCCC CPPP....
+.....PPC CCCCCCCC CP......
+......PP PCCCCOOP PP......
+BBB.TTTT PPPOOOPP PBB.....
+.BB...TT TTTBBB.B BB......
+......TT TT.B.BBB BB......
+.BB.CCT. T.....BB BBB.....
+.....CCC BB.BBBBB BBBBBBB.
+........ BBBBBBBB BBBBBB..
+BB.B.CCC BBBBBBBB BBBBB...
+BBBB.... BBBBBBBB BBBBBB..
+BBBBBBBB BBBBBB.. BBB.BBB.
+`,spools:`
+G2 G2 G2 G2 G2 G2 B15 B12 B8 B6 B2
+G9 G8 G7 G5 B5 B3 B2 B2 B2 B2 C4 C3
+G7 G4 G2 G2 B6 B6 B5 B3 B3 B3 K2 C3
+B3 B3 P4 T4 C3 C2 C2 C2 C2 C2
+P4 P3 O5 C40 C2
+B2 P4 P2 P2 P2 P2 C3
+B4 B4 B3 B2 B2 B2 B2 T5 C5 C3
+B17 B10 B5 B4 B4 B4 B3 T3 T3
+B14 B7 B5 B4 B3 B2 B2
+`},
+  {id:'moon',name:'Moonlit Clouds',short:'Moon',background:'#17295f',palette:{C:'#efe0a8',B:'#86addb',T:'#5584bc',G:'#34609c',V:'#464f98',K:'#0c1633'},diff:2,diffs:[2,2,5,2,2,2,2,2],cfg:{},art:`
+....CC.. ........
+.CC..... ......CC
+........ ........
+..CC..CC ..CCC...
+..CC.... ...CCC..
+......CC ....CCC.
+.....CC. .....CC.
+....CC.. .....CC.
+........ ....CC..
+......CC CCCCC...
+..BBBB.. CC..CC..
+.BBBBBB. ........
+BBBCCBBB B...CC..
+BBBBBBTT BB......
+BBBBTCCT BB....CC
+BBBBTTTT BBBB....
+TTBBTTTT TCCBB...
+TTTBTTTT TTTBBB..
+TTTTTTTT CCTTTBBB
+TTTTCCTT TTTTTTTB
+TTTTTTTT TTBBBTTT
+GGTTTTTT TTTTTTTT
+KGGTTTTT TTTTTTTT
+KKGGGTTT TTTTTTTT
+KKKGGGGG TTTTTGGK
+KKKKVVVV GGGGGGKK
+KKKKVVVV VVVVVKKK
+KKKKKVVV VVVVKKKK
+KKKKKKVV VVVKKKKK
+KKKKKKKV VVKKKKKK
+KKKKKKVV KKKKKKKK
+KKKKKKKK KKKKKKKK
+`,spools:`
+C4 C2 C2 C2 C2 C2 C2
+C3 C3 C3 C2 C2 C2
+B15 B11 B4 T8 C2 C2 C2
+B9 C3 C2 C2 C2 C2 C2 C2
+G7 B3 T17 T8 T6 T6 T5 T5 T2 K3 C2
+B9 B3 T14 T7 T6 T4 T4 T4 T4 C2 C2
+G3 G2 V3 V3 V3 V3 V2 V2 K39 K4
+G4 G2 G2 V5 V3 V3 V3 T5 K15 K11 K8 K3
+`},
+  {id:'cottage',name:'Meadow Cottage',short:'Cottage',background:'#f7edb7',palette:{K:'#293e12',N:'#4f4c18',B:'#5a6d17',T:'#9a5b38',V:'#809462',G:'#ce7848',R:'#c4ad3a',P:'#c1b88c',O:'#c3d1c4',Y:'#d9d0a1',C:'#d6e9e2'},diff:2,cfg:{},art:`
+........ ........ ........
+....BKK. .....CC. .....CC.
+..KBBBKK ....CCCC ..CCCCC.
+KKKBBBKK B....CCC ..C.....
+KBBBKBBK BB.....C .....BBB
+KKBKKKKK BB...CCC CC..BBBB
+.KKKKKKK BB...CC. ...BBBBB
+KKKKKNNK KKK..... ..BBKKBB
+KBBKKNKK KKKRRRR. ..BBBKNN
+KBKKKNKK KBRRRRRR VVBBBKNN
+KKKKKNNK KBVVVVVV VVBBKKNN
+KKKKKNKK KTTTTTTT VVVKBNNN
+KKKNNKKK TTTTTTTT TVVKBNNN
+KKKNNKNN YTTTTGTT TTTBBNNK
+KKBNNNNN YYTTTGGT TTTBBNNK
+KKBBNNNN YYTTTTTT TTTRRRNN
+KKKKKYY. .YYTTTTT YYYRRRNN
+KBBKKY.. ..YYYYYY YYYKBNNK
+BBKKKKKK BBY.NN.N .NNKBNNK
+BKKKKKKK BBY.NN.N .NNKBBBK
+KKKKKKKK BKKK.BBN ..KKKKKK
+KKBBBBBK KKKKKBBB KKKKKKKK
+BBBYBVVV BBBBBBBB RRRBBBBB
+YYYYYYVV BBBBBBVV RRRRRBBB
+VVYYNNVV BBBBBBBB RRRRRRVV
+VVBBBBBV BBBBBRRR RBBBVVVV
+VBBBBBBB BBBRRRRR VVVVVVVV
+VBBBBB.. BBBBVVVV VVVVVBBB
+VRRBBYYY BVVVVV.. ..YVBBBB
+VBBBBBBB BBVVVYY. .YYBBBBK
+VVVBBBBB BBVVNNYY YYBBBBKK
+GGVVVVBB VVVVNBBB BBBBKKKK
+GGVVVVVV VBBBBBBB BBBBGKKK
+BBVVVVVV VVVVVVVV BBBKGGGK
+BGKKBBGG BBBBBBBB BBBKGGGK
+GGGKKGGG BBBBBBBR BBKKKKKK
+GGGKGKKG BBBBBBBR RRKKRKBB
+KKKKGGKK KKKKKRBK KKKRRKBB
+KKKKKKKK KKKKKRKK KKKKKKKK
+KKKKKKKK KKKKKKKK KKKKKKKK
+`,spools:`
+B3 B3 B3 B2 B2 N2 K8 K8 K6 K6 K3 K2
+B3 B2 B2 K3 C4 C3 C2 C2 C2 C2
+B3 B3 B2 B2 B2 B2 B2 K2 C8 C2
+B3 B3 N8 N5 N3 N2 N2 K22 K6 K5 K5
+R10 G3 B2 Y3 Y2 V3 V3 T22 T9 K4 K2
+R3 B8 B6 V5 V4 N18 T4 T4 T2 K4 K2 K2
+B5 B5 B4 Y4 Y3 Y3 V3 V2 K21 K5 K3 K3
+B19 B5 Y8 Y2 V2 N3 N2 N2 T5 K3 K3 K2
+R8 R3 B8 B5 Y3 Y3 N4 N4 N2 K12 K5 K3
+R2 G2 B31 B2 Y3 Y2 V15 V3 N2
+R6 R2 B22 B3 B3 Y2 Y2 V6 V5 V4 V3 N3
+R7 B12 B5 B3 B2 Y3 Y2 V17 V3 K3 K2 K2
+G7 G6 G3 G2 B3 B2 V7 V5 K27 K2
+R2 R2 B21 B7 B2 V7 V2 K8 K8 K3 K2
+R3 R2 G3 G2 G2 B12 B4 K12 K10 K7 K4 K3
+`},
+  {id:'jelly',name:'Starlit Jellyfish',short:'Jellyfish',background:'#161615',palette:{K:'#1d2949',N:'#142e78',B:'#4b59aa',T:'#327c7b',V:'#167fc0',G:'#44b2e1',R:'#9ebedd',C:'#f5fbfb'},diff:3,cfg:{},art:`
+........ ...CCCCC C.......
+........ ..CCTTTT CCC...CC
+.......C CCCCNNNN TTCC...C
+.......C NNNNNNNN KKCCC...
+..CC...G BBBBBBBB KKKCCC..
+..CC..CG GGGGGVVV NNKKTC..
+......CG CGGGGGVV NNNKTCC.
+......CG CGGGGGGG VVNKTCC.
+...CC.CC CCCCCCCC GGBBBTC.
+....C..N VKKKKVVC GGVBBTC.
+.......N VKKGGGVV KGVVBCC.
+..C...NN VKKGGGVV KKBBBC..
+..C...NV VKGGGGVV GNNVCC..
+....VVVV .GGGGGBB G.VV....
+....V.V. NNGGGGBG GVV.....
+.....RRR NNGGKKBG GVV.....
+..NNNN.R NNVVKKRR VVV.....
+..NNNN.R NVVVKKRN VVV.....
+.NNNN..R NVVVKRRN V.V.....
+.NNNN.RR NNRKKRNN N.V..CC.
+.NNN..RN NNRKBBNN N..K..C.
+.RRKKGRN NNRKKBNN N.KK....
+.RRKKGRN N.KKKNNN ..K.....
+...KGGRN NKKKKN.N ..K.....
+..KK.NNN NKKKRRK. KKK.....
+..K..NNN NKKKR.K. .V.CC...
+.KK..NNN GGKK..K. .V..C...
+RR...RKK ..K...K. .VV.....
+.R...RK. ..K...RR ........
+........ ..VV..R. ........
+........ V....... ........
+........ V....... ........
+`,spools:`
+G2 G2 C3 C2 C2 C2
+G15 G2 B8 V3 V2 N10 N2 T2 T2 C9 C2 C2
+V2 N3 N3 T3 T2 K5 K4 C10 C3 C3 C2 C2
+R3 V5 V2 N3 N2 C3 C2 C2
+G21 G2 B2 B2 V8 V4 N4 K7 K2 K2 C7 C2
+G5 G4 B5 B4 V7 V3 N2 T2 K3 C3 C2 C2
+R9 R4 G2 G2 N19 N4 K3 K2
+R4 R3 R2 B3 V5 V3 N8 N7 N6 N4 K12 K5
+V4 V3 V2 N3 K3 K2 C3
+R3 R2 N7 N2 K3 K3 K2
+R3 R3 G2 V2 V2 N2 K10 K2 K2
+V2 V2 K3 C3
+`},
+  {id:'fox',name:'Fox in Bloom',short:'Fox',background:'#295d56',palette:{K:'#3c281c',N:'#b23c16',B:'#49855e',T:'#b6616d',V:'#8d8920',G:'#e46d1c',R:'#8ba772',P:'#c6868f',O:'#94a0a6',Y:'#cbc040',C:'#d1b4b4'},diff:3,cfg:{},art:`
+TTTTTTTT TTTPPPRR RRRRRRCC PPTTTTTT
+TTTTTTTT TTTPPPRR RRRRRRCC PPTTPTTT
+TTTTPPTT TPTPPCCR RRRRRRRR PPPTPTTT
+TTTTTTTT PPTTPPCC RRRRRRRR PPPTPTTT
+TPPPPTTP PPTTCCCC RRRRRRRR PPPPTTTT
+TPPPPTTP PPPPCCCC RRRRRRRR RPPPPPPT
+TTTPPCCR PPPPCRCR RRRRRRRR RPPPPCCT
+TTTCCCRR PPPPPRRR RRRRRRRR PPPPPPPP
+BBBKBBBB RRRRRRRR CCYYCCRR RRRPPTTT
+BBBKBKKK BRRRRRRR CCYYCCRR RRRRBBCC
+BBBKKKBB BBBBBRRR CGGGGCRR RRBBBBKB
+BBKK.KBB BBBBBBBG GGNNGGRB BBBBBBKB
+.KK..KKB BBBYYYYG NNNNBBBB BBBBBBBK
+KK..KKBB BBGGGYYN CCNNCCBB BBBBBBBK
+K...K..B .GGGGGGN OCCCCBBB BBBBBBBB
+K..KKCC. .GGGGGGN OOOOOBBB BBB..B..
+K.KK...Y NNNGGNGN OOOCYYBB ........
+K.KK...Y NNNGNNGN OOOCY.B. ........
+K.KK..GG NNNNNNNN OOCYY... ........
+K.KKK.GG NNNNNNNN OOCG.CC. ....C...
+K.KK.CCC NNN.NNNN OOGG.C.. ..CCCCC.
+V.KK.CCO NK.KK.NK .NN..... ..CCCCC.
+VVVV.COO .K.K..NK .NK...CC CC.C.CPP
+VVVVVOO. .K.K..KK .NKK..CC CKKK.PPP
+YYYYYYYY KK.V..KK .KK...CC KKKTPPPP
+VVVVVVYY YYYVVVKK .KK..KKK KKKTTT..
+VVVVVVYY YYYYYYKK KKK....P PP.TTT..
+KKKKKKKK KKKVVVYY YYK....P PPP...P.
+KVVKKKKK VVVVVYYY YYYYYYY. ..P.PPPP
+VVVCCPPP VVVVVVVV VVVVYYYY Y..KKCCC
+VVCCCVVP TTVVVVVV VYYYYYYY YYYY.C.C
+VVCCCVVV TTTVVVVV VVVVVVVV VVVYY...
+`,spools:`
+R3 P3 P3 P2 P2 P2 P2 T40 T2 C3 C2
+R5 R5 P13 P6 P5 P4 T9 T3 C6 C3 C3 C2
+R28 R9 R8 R7 R3 R3 R2 C4
+R2 P22 P6 P3 P2 P2 T7 T6 T6 T4 T2 C2
+B9 B5 B3 B3 B2 B2 K7 K6 K5 K3 K3 C2
+R14 R4 G12 G3 G2 B8 B4 B4 B2 Y3 Y3 N3
+R7 G6 G2 B13 Y4 O4 O2 N5 N3 C8 C5 C5
+R5 R2 R2 B34 B4 B2 P2 T3 K2 K2 C2
+G4 Y2 V5 V3 V2 O3 O2 K13 K3 K2 C3 C3
+G3 G2 N13 N10 N7 N4 N3 K4 K3 K2 K2
+G3 B3 Y5 O6 O6 N2 N2 K3 C4 C3 C2 C2
+P3 P2 K3 C3 C3 C3 C3 C2 C2
+Y6 Y4 Y2 V12 V9 V5 P2 P2 K11 K3 C5 C3
+Y9 Y5 V8 V7 V6 V4 V3 V3 T5 K6 K3 K2
+Y17 Y3 V4 V4 V3 V2 P2 K4 K3 K2 K2 C2
+Y7 V3 P6 P4 P3 P2 T4 T3 K6 K2 C3 C2
+`}
+ ];
+ function makePictures(first=21){
+  let n=first;
+  return TAP.map(({art,cfg,spools,...pic})=>{
+   const rows=art.trim().split(/\r?\n/).map(row=>row.replaceAll(' ',''));
+   const w=rows[0].length,h=rows.length,cols=w/PIECE,count=cols*(h/PIECE),firstNo=n;
+   n+=count;
+   const piece=i=>{const px=i%cols*PIECE,py=(i/cols|0)*PIECE;return rows.slice(py,py+PIECE).map(row=>row.slice(px,px+PIECE))};
+   return{...pic,cfg:{...TAPESTRY_CFG,...cfg},rows,w,h,cols,count,first:firstNo,piece,baked:spools?spools.trim().split(/\r?\n/).map(l=>l.trim()):null};
+  });
+ }
+ // ---- difficulty-targeted spool split ----
+ // A heart is lost when a committed path strands cells of its colour (the rest can no longer be tiled by the remaining spools).
+ // "Trap rate" = share of random legal commits that get rejected. The splitter tries many spool-length sets per colour, measures that
+ // rate by simulated play, and keeps the set closest to the designer's difficulty (1 easiest .. 5 hardest).
+ const TRAP_TARGET=[0,.03,.15,.35,.6,.85],DIFF_HEARTS=[3,3,3,4,5,5],DIFF_NAME=['','Easy','Gentle','Medium','Hard','Brutal'];
+ function colorComps(A,cs){const set=new Set(cs),seen=new Set(),out=[];for(const c of cs){if(seen.has(c))continue;const q=[c];seen.add(c);for(let k=0;k<q.length;k++)for(const j of A[q[k]])if(set.has(j)&&!seen.has(j)){seen.add(j);q.push(j)}out.push(q)}return out}
+ // k parts >= minLen summing to n; weights random so lengths range from balanced to very uneven
+ function randSplit(n,k,minLen,rng){if(k*minLen>n)return null;const extra=n-k*minLen,w=Array.from({length:k},()=>-Math.log(1-rng()*.999)),tw=w.reduce((x,y)=>x+y,0),parts=w.map(x=>minLen+Math.floor(extra*x/tw));
+  let left=n-parts.reduce((x,y)=>x+y,0);while(left-->0)parts[rng()*k|0]++;return parts.sort((x,y)=>y-x)}
+ // simulated random play on one colour: returns [rejected commits, attempted commits]
+ function trapCount(level,color,lens,rng,runs){let att=0,rej=0;
+  for(let r=0;r<runs;r++){const spools=lens.map((l,i)=>({id:i,color,length:l,done:false})),st=makeState(level,new Set(),spools);let guard=0;
+   while(spools.some(x=>!x.done)&&guard++<30){const open=spools.filter(x=>!x.done),sp=open[rng()*open.length|0],p=randomPath(st,sp,rng);if(!p)continue;
+    att++;p.forEach(i=>st.stitched.add(i));sp.done=true;
+    if(solveColor(st,color,{limit:5000}).status==='unsolvable'){rej++;p.forEach(i=>st.stitched.delete(i));sp.done=false}}}
+  return[rej,att]}
+ function splitLevel(rows,o={}){
+  const {diff=3,seed=1,name='Level',number=0,minLen=2,maxSpools=12,cands=24,runs=8}=o,target=o.target??TRAP_TARGET[diff],rng=mulberry32(seed*7919+diff*31+5);
+  const level=parseLevel(name,rows,number),A=adj(level.w,level.h),colors=COLORS.split('').filter(c=>level.cells.includes(c)),picks=[];
+  for(const color of colors){const cs=level.cells.map((x,i)=>x===color?i:-1).filter(i=>i>=0),comps=colorComps(A,cs),seen=new Map();
+   const t0=Date.now();for(let c=0;c<cands;c++){if(c>2&&seen.size&&Date.now()-t0>(o.budgetMs??1200))break;let lens=[];const mode=c%6;
+    for(const comp of comps){const n=comp.length,kmax=Math.max(1,Math.min(7,n/minLen|0)),kmin=Math.min(kmax,Math.ceil(n/(o.maxSpoolLen??22)));
+     const k=mode===0?1:mode===1?Math.min(2,kmax):mode===2?kmax:1+(rng()*kmax|0),sp=randSplit(n,Math.max(kmin,Math.min(k,kmax)),minLen,rng)||[n];lens=lens.concat(sp)}
+    lens.sort((x,y)=>y-x);const key=lens.join();if(seen.has(key))continue;
+    const spools=lens.map((l,i)=>({id:i,color,length:l,done:false}));
+    if(solveColor(makeState(level,new Set(),spools),color,{limit:8000}).status!=='solvable'){seen.set(key,null);continue}
+    const [rej,att]=trapCount(level,color,lens,rng,runs);seen.set(key,{lens,rej,att,rate:att?rej/att:0})}
+   let list=[...seen.values()].filter(Boolean);
+   // fallback: spools cut from random walks always tile the colour (blobby regions often have no Hamiltonian-path split)
+   for(let t=0;!list.length&&t<40;t++){const paths=partition(A,cs,rng,{minLen,prefLen:minLen,kmin:1,kmax:Math.max(2,Math.ceil(cs.length/5)),torn:0});if(!paths)continue;const lens=paths.map(p=>p.length).sort((x,y)=>y-x),key=lens.join();if(seen.has(key))continue;const [rej,att]=trapCount(level,color,lens,rng,runs);const e={lens,rej,att,rate:att?rej/att:0};seen.set(key,e);list.push(e)}
+   if(!list.length)throw Error('no valid split for colour '+color+' in '+name+' (check for isolated single cells)');
+   picks.push({color,list,cur:null})}
+  const score=x=>Math.abs(x.rate-target)+x.lens.length*.002+Math.max(0,x.lens[0]-24)*.006; // very long single threads are tedious to draw
+  for(const p of picks)p.cur=p.list.slice().sort((x,y)=>score(x)-score(y))[0];
+  // keep the tray within budget: shrink the colour with most spools to its closest-to-target split that has fewer spools
+  let guard=0;while(picks.reduce((x,p)=>x+p.cur.lens.length,0)>maxSpools&&guard++<40){
+   const p=picks.filter(q=>q.list.some(x=>x.lens.length<q.cur.lens.length)).sort((x,y)=>y.cur.lens.length-x.cur.lens.length)[0];if(!p)break;
+   p.cur=p.list.filter(x=>x.lens.length<p.cur.lens.length).sort((x,y)=>score(x)-score(y))[0]}
+  let id=0,rej=0,att=0,lo=0,hi=0;
+  for(const p of picks){for(const l of p.cur.lens)level.spools.push({id:id++,color:p.color,length:l,done:false});rej+=p.cur.rej;att+=p.cur.att;
+   lo+=Math.min(...p.list.map(x=>x.rate))*p.cur.att;hi+=Math.max(...p.list.map(x=>x.rate))*p.cur.att}
+  const st=makeState(level);for(const p of picks){const r=solveColor(st,p.color,{limit:200000});if(r.status!=='solvable')throw Error('split unsolvable '+name+' '+p.color);for(const path of r.paths)level.solution.push({color:p.color,path})}
+  level.diff=diff;level.trap=att?+(rej/att).toFixed(2):0;level.trapTarget=target;level.trapRange=att?[+(lo/att).toFixed(2),+(hi/att).toFixed(2)]:[0,0];return level}
+ // "B15 B11 T8" -> level (used for baked splits: no search at load time)
+ function levelFromBaked(number,name,rows,text){const level=parseLevel(name,rows,number);let id=0;
+  for(const tok of text.trim().split(/\s+/))if(tok)level.spools.push({id:id++,color:tok[0],length:+tok.slice(1),done:false});
+  const st=makeState(level);for(const c of COLORS.split('')){if(!level.spools.some(x=>x.color===c))continue;const r=solveColor(st,c,{limit:200000});if(r.status!=='solvable')throw Error('baked split not solvable: '+name+' '+c);for(const path of r.paths)level.solution.push({color:c,path})}
+  return level}
+ const spoolText=level=>level.spools.map(x=>x.color+x.length).join(' ');
  function generateTapestry(first=21){const out=[];
-  for(const pic of makePictures(first))for(let i=0;i<pic.count;i++){const n=pic.first+i,lv=bestLevel(n,pic.name+' '+(i+1)+'/'+pic.count,pic.piece(i),pic.cfg,pic.cfg.tn);
-   const bf=botSim(lv,40,n*13);Object.assign(lv,{botFail:+bf.toFixed(2),hearts:bf>.8?5:bf>.5?4:3,pic:pic.id,picName:pic.name,picShort:pic.short,piece:i,pieces:pic.count,px:i%pic.cols,py:i/pic.cols|0,cols:pic.cols});out.push(lv)}
+  for(const pic of makePictures(first))for(let i=0;i<pic.count;i++){const n=pic.first+i,name=pic.name+' '+(i+1)+'/'+pic.count,rows=pic.piece(i),diff=pic.diffs?.[i]??pic.diff??3,baked=pic.baked?.[i];
+   const lv=baked?levelFromBaked(n,name,rows,baked):splitLevel(rows,{diff,seed:n,name,number:n});
+   if(baked)lv.diff=diff;
+   Object.assign(lv,{hearts:DIFF_HEARTS[diff],pic:pic.id,picName:pic.name,picShort:pic.short,piece:i,pieces:pic.count,px:i%pic.cols,py:i/pic.cols|0,cols:pic.cols});out.push(lv)}
   return out}
 
- return{COLORS,regionSize,strandInfo,canvasGrid,makePictures,generateTapestry,tidy,DIFFICULTY,mulberry32,makeState,neighbors,cell,remaining,lengths,solveCells,solveColor,solve,isSolvable,legalNext,validStarts,analyzeSpool,countPartitions,botSim,failTarget,pathStatus,autoRun,autoStitch,ASSIST,FIXTURE,MOTIFS,parseLevel,generateLevels,metrics};
+ return{trapCount,colorComps,adj,splitLevel,levelFromBaked,spoolText,TRAP_TARGET,DIFF_NAME,DIFF_HEARTS,COLORS,regionSize,strandInfo,makePictures,generateTapestry,DIFFICULTY,mulberry32,makeState,neighbors,cell,remaining,lengths,solveCells,solveColor,solve,isSolvable,legalNext,validStarts,analyzeSpool,countPartitions,botSim,failTarget,pathStatus,autoRun,autoStitch,ASSIST,FIXTURE,MOTIFS,parseLevel,generateLevels,metrics};
 })();

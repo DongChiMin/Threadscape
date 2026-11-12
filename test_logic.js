@@ -36,9 +36,14 @@ assert.deepEqual(Logic.autoRun(st,fx.spools[1],[5]),[6],'runs one cell then stop
 
 // 3. Twenty generated levels
 const levels=Logic.generateLevels();assert.equal(levels.length,20);
+for(const [i,[name,art]] of Logic.MOTIFS.entries()){
+ assert(art.every(row=>row.length===art[0].length&&[...row].every(c=>c==='.'||c==='#'||Logic.COLORS.includes(c))),`art grid ${name}`);
+ assert.equal(levels[i+1].cells.join('').toUpperCase(),art.join(''),`level matches art ${name}`);
+}
 const rows=[];
 for(const l of levels){
  const n=l.cells.filter(x=>Logic.COLORS.includes(x)).length;
+ assert(l.spools.length<=12,`tray size L${l.number}: ${l.spools.length}`);
  assert.equal(l.spools.reduce((a,s)=>a+s.length,0),n,`spool total L${l.number}`);
  for(const {color,path} of l.solution){assert(path.every(i=>l.cells[i]===color),`color L${l.number}`);
   assert(path.every((i,k)=>!k||Logic.neighbors(l,path[k-1]).includes(i)),`adjacent L${l.number}`);assert.equal(new Set(path).size,path.length)}
@@ -58,7 +63,15 @@ console.log(warn.length?'SOFT WARNINGS:\n - '+warn.join('\n - '):'all soft targe
 
 // 3b. Tapestries (big pictures cut into pieces) + UX helpers
 {const tap=Logic.generateTapestry(),pics=Logic.makePictures();assert.equal(tap.length,pics.reduce((a,p)=>a+p.count,0));
+ assert.deepEqual(pics.map(p=>[p.id,p.w,p.h,p.first,p.count]),[
+  ['duck',24,24,21,9],['moon',16,32,30,8],['cottage',24,40,38,15],['jelly',24,32,53,12],['fox',32,32,65,16]
+ ],'tapestry sizes and progression order');
+ for(const p of pics){assert(p.rows.every(row=>row.length===p.w&&[...row].every(c=>c==='.'||Logic.COLORS.includes(c))),`art grid ${p.id}`);
+  for(let i=0;i<p.count;i++){const l=tap[p.first-21+i],x=i%p.cols*8,y=Math.floor(i/p.cols)*8;
+   const pixels=p.rows.slice(y,y+8).map(row=>row.slice(x,x+8)).join('');
+   assert.equal(l.cells.join('').toUpperCase(),pixels,`piece matches finished art L${l.number}`)}}
  for(const l of tap){const n=l.cells.filter(x=>Logic.COLORS.includes(x)).length;assert.equal(l.spools.reduce((a,s)=>a+s.length,0),n,'tap spool total '+l.number);
+  assert(l.spools.length>0&&l.spools.every(s=>s.length>=2),`playable threads L${l.number}`);
   assert.equal(Logic.isSolvable(Logic.makeState(l)),'solvable','tap solvable '+l.number);assert(l.spools.length<=12,'tray size '+l.number+': '+l.spools.length)}
  console.log('tapestry pieces:',tap.length,'solvable; spools per piece',tap.map(l=>l.spools.length).join(','));
  // region size + strand explanation on the fixture

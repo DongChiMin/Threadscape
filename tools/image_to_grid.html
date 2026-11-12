@@ -10,12 +10,12 @@ textarea{width:100%;height:190px;font:12px/1.2 monospace}button{padding:8px 14px
 </style></head><body>
 <h1>Image → Stitch Path grid (tapestry maker)</h1>
 <div class="card">
- <p class="small">Pick a picture (transparent PNGs work best). It is shrunk to a grid, every cell is snapped to the nearest of the 10 floss colours, and the result is printed as rows you can paste into <code>ART</code> / <code>TAP</code> in logic.js (or save as a .txt). Width and height should be multiples of 8 so the picture splits into 8×8 pieces.</p>
+ <p class="small">Pick a picture (transparent PNGs work best). It is shrunk to a grid, every cell is snapped to the nearest of the 11 floss colours, and the result is printed as rows you can paste into <code>ART</code> / <code>TAP</code> in logic.js (or save as a .txt). Width and height should be multiples of 8 so the picture splits into 8×8 pieces.</p>
  <input type="file" id="file" accept="image/*">
  <p>
   <label>Columns <input type="number" id="cols" value="24" min="8" max="48" step="8"></label>
   <label>Rows <input type="number" id="rows" value="16" min="8" max="48" step="8"></label>
-  <label>Max colours <input type="number" id="maxc" value="8" min="2" max="10"></label>
+  <label>Max colours <input type="number" id="maxc" value="8" min="2" max="11"></label>
   <label>Background tolerance <input type="number" id="tol" value="40" min="0" max="200"></label>
   <label><input type="checkbox" id="bgcorner" checked> treat colour of top-left pixel as background</label>
   <label><input type="checkbox" id="fit" checked> keep aspect (letterbox)</label>
@@ -26,8 +26,8 @@ textarea{width:100%;height:190px;font:12px/1.2 monospace}button{padding:8px 14px
 <div class="card"><b>Result</b> <button id="copy">Copy</button> <span id="info" class="small"></span>
  <textarea id="txt" readonly></textarea></div>
 <script>
-const PAL={R:'#E0534A',G:'#5AA05A',B:'#4A8FD6',Y:'#F2C230',V:'#8A62C6',P:'#EC86AD',O:'#F08A3C',N:'#8B5A3C',T:'#2FA89A',K:'#4A4A55'};
-const NAMES={R:'coral',G:'leaf',B:'sky',Y:'sunflower',V:'violet',P:'pink',O:'orange',N:'brown',T:'teal',K:'charcoal'};
+const PAL={R:'#E0534A',G:'#5AA05A',B:'#4A8FD6',Y:'#F2C230',V:'#8A62C6',P:'#EC86AD',O:'#F08A3C',N:'#8B5A3C',T:'#2FA89A',K:'#4A4A55',C:'#FFF8E7'};
+const NAMES={R:'coral',G:'leaf',B:'sky',Y:'sunflower',V:'violet',P:'pink',O:'orange',N:'brown',T:'teal',K:'charcoal',C:'ivory'};
 const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),$=id=>document.getElementById(id);
 $('pal').innerHTML=Object.entries(PAL).map(([k,v])=>`<span class="sw"><i style="background:${v}"></i>${k} ${NAMES[k]}</span>`).join('');
 let img=null;

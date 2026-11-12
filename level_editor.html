@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stitch Path - Level Editor</title>
+<style>
+:root{--bg:#2b2320;--card:#3a2f2a;--ink:#f6ead6;--dim:#b9a78f;--acc:#e9a46d;--bad:#ff8a7a;--ok:#8fd19e}
+*{box-sizing:border-box}body{margin:0;font:13px system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;gap:10px;align-items:center;padding:8px 12px;background:#231b18;position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header h1{font-size:15px;margin:0 8px 0 0}
+main{display:grid;grid-template-columns:minmax(300px,1fr) 380px;gap:12px;padding:12px;align-items:start}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.card h2{font-size:13px;margin:0 0 8px;color:var(--acc)}
+button,select,input,textarea{font:inherit}
+button{background:var(--acc);color:#2a1c0c;border:0;border-radius:7px;padding:6px 10px;font-weight:700;cursor:pointer}
+button.alt{background:#55463d;color:var(--ink)}button.on{outline:2px solid #fff}button:disabled{opacity:.4;cursor:default}
+input[type=number],input[type=text],select,textarea{background:#241c19;color:var(--ink);border:1px solid #5a4a40;border-radius:6px;padding:4px 6px}
+input[type=number]{width:64px}textarea{width:100%;min-height:70px;font:12px/1.3 monospace}
+label{display:inline-flex;align-items:center;gap:5px;margin:3px 10px 3px 0}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}
+.sw{width:30px;height:30px;border-radius:6px;border:2px solid transparent;cursor:pointer;position:relative}
+.sw.on{border-color:#fff}.sw small{position:absolute;right:2px;bottom:0;font-size:9px;color:#000a;font-weight:800}
+.sw input{position:absolute;inset:0;opacity:0;cursor:pointer}
+#wrap{overflow:auto;background:#1c1614;border-radius:8px;padding:8px;max-height:calc(100vh - 150px)}
+canvas{image-rendering:pixelated;display:block;touch-action:none;cursor:crosshair}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:12px;font-weight:800;font-size:12px;margin:2px;color:#111}
+.warn{color:var(--bad)}.good{color:var(--ok)}.dim{color:var(--dim)}
+table{border-collapse:collapse;width:100%;font-size:12px}td,th{padding:2px 5px;text-align:left;border-bottom:1px solid #4a3d36}
+tr.sel td{background:#4b3b33}tr.click{cursor:pointer}
+pre{background:#1c1614;padding:8px;border-radius:6px;overflow:auto;max-height:180px;font-size:11px;margin:4px 0}
+.bar{height:8px;background:#241c19;border-radius:4px;position:relative;margin:3px 0}.bar i{position:absolute;top:0;bottom:0;border-radius:4px}
+</style></head><body>
+<header>
+ <h1>Level Editor</h1>
+ <select id="src" title="Load an existing level"></select><button class="alt" id="load">Load</button>
+ <button class="alt" id="blank">New blank</button>
+ <label>W<input type="number" id="gw" min="2" max="64" value="8"></label><label>H<input type="number" id="gh" min="2" max="64" value="8"></label><button class="alt" id="resize">Resize</button>
+ <span class="dim" id="status"></span>
+</header>
+<main>
+<section>
+ <div class="card">
+  <div class="row" id="tools"></div>
+  <div class="row" id="palette"></div>
+  <div class="row">
+   <label><input type="checkbox" id="mirror"> mirror left-right</label>
+   <label><input type="checkbox" id="tapmode"> tapestry mode (8x8 pieces)</label>
+   <label><input type="checkbox" id="showsol"> show solution</label>
+   <label>zoom <input type="range" id="zoom" min="10" max="48" value="26"></label>
+   <button class="alt" id="undo">Undo</button><button class="alt" id="redo">Redo</button>
+  </div>
+ </div>
+ <div id="wrap"><canvas id="cv"></canvas></div>
+ <p class="dim" id="hint">Paint with the mouse. Right-click or the eyedropper picks a colour. In tapestry mode click a piece to select it.</p>
+</section>
+<aside>
+ <div class="card"><h2>Name</h2>
+  <div class="row"><input type="text" id="name" value="My level" style="flex:1"><input type="text" id="tid" value="mytap" style="width:90px" title="tapestry id"></div>
+ </div>
+ <div class="card"><h2>Split spools by difficulty</h2>
+  <div class="row"><label>Difficulty <input type="range" id="diff" min="1" max="5" value="3"></label><b id="diffname"></b></div>
+  <div class="row"><label>min length <input type="number" id="minlen" value="2" min="1" max="6"></label><label>max spools <input type="number" id="maxsp" value="12" min="2" max="20"></label><label>seed <input type="number" id="seed" value="1" style="width:76px"></label></div>
+  <div class="row"><button id="split">Split spools</button><button class="alt" id="reroll">Re-roll seed</button><button class="alt" id="splitall" title="tapestry mode: every piece with its own difficulty">Split all pieces</button></div>
+  <div id="splitinfo" class="dim"></div>
+ </div>
+ <div class="card"><h2>Spools <span id="pieceLabel" class="dim"></span></h2>
+  <div id="chips"></div>
+  <textarea id="spooltext" placeholder="B15 B11 T8 C2 C2" spellcheck="false"></textarea>
+  <div class="row"><button class="alt" id="applyspools">Apply / verify typed spools</button></div>
+  <div id="spoolinfo"></div>
+ </div>
+ <div class="card"><h2>Pieces</h2><div id="pieces" class="dim">tapestry mode off</div></div>
+ <div class="card"><h2>Analysis</h2><div id="analysis"></div></div>
+ <div class="card"><h2>Import picture</h2>
+  <input type="file" id="img" accept="image/*">
+  <div class="row"><label>cols <input type="number" id="icols" value="24" min="4" max="64"></label><label>rows <input type="number" id="irows" value="24" min="4" max="64"></label><label>colours <input type="number" id="ik" value="8" min="2" max="11"></label></div>
+  <div class="row"><label><input type="checkbox" id="ibg" checked> most common colour = bare fabric</label><label><input type="checkbox" id="ikeep" checked> keep aspect (rows auto)</label></div>
+  <div class="row"><button id="igo" disabled>Generate grid</button></div>
+  <p class="dim">The picture is shrunk, reduced to the chosen colours (any hex, stored as the level's own palette), cleaned of single stray cells, then you can edit it by hand.</p>
+ </div>
+ <div class="card"><h2>Export</h2>
+  <div class="row"><button class="alt" data-exp="tap">Tapestry entry (logic.js)</button><button class="alt" data-exp="motif">Mini-level row</button><button class="alt" data-exp="json">JSON</button><button class="alt" id="import">Import JSON</button></div>
+  <pre id="out">pick an export format</pre>
+  <div class="row"><button id="copy" class="alt">Copy</button><button id="dl" class="alt">Download</button></div>
+ </div>
+</aside>
+</main>
+<input type="file" id="jsonfile" accept=".json" hidden>
+<script src="logic.js"></script>
+<script>
+const $=id=>document.getElementById(id),L=Logic,LET='KNBTVGRPOYC';
+const BASE={R:'#E0534A',G:'#5AA05A',B:'#4A8FD6',Y:'#F2C230',V:'#8A62C6',P:'#EC86AD',O:'#F08A3C',N:'#8B5A3C',T:'#2FA89A',K:'#4A4A55',C:'#FFF8E7'};
+let S=null,cur='R',tool='pen',sel=0,hist=[],redo=[],drag=false,pending=null,solCache=null;
+// ---------- state ----------
+function blank(w,h,name='My level'){return{name,w,h,cells:Array(w*h).fill('.'),palette:{...BASE},background:'#f1e1c4',tap:false,diff:3,diffs:[],spools:{},baked:{}}}
+const rowsOf=(s,x0=0,y0=0,w=s.w,h=s.h)=>{const r=[];for(let y=y0;y<y0+h;y++){let t='';for(let x=x0;x<x0+w;x++)t+=s.cells[y*s.w+x];r.push(t)}return r};
+const pieceCount=s=>s.tap?(s.w/8)*(s.h/8):1;
+const pieceBox=(s,i)=>s.tap?{x:i%(s.w/8)*8,y:(i/(s.w/8)|0)*8,w:8,h:8}:{x:0,y:0,w:s.w,h:s.h};
+const pieceRows=(s,i)=>{const b=pieceBox(s,i);return rowsOf(s,b.x,b.y,b.w,b.h)};
+function snapshot(){hist.push(JSON.stringify({cells:S.cells,w:S.w,h:S.h,palette:S.palette}));if(hist.length>200)hist.shift();redo=[]}
+function restore(j){const o=JSON.parse(j);S.cells=o.cells;S.w=o.w;S.h=o.h;S.palette=o.palette;solCache=null;refresh()}
+function save(){try{localStorage.setItem('stitchEditor',JSON.stringify(S))}catch{}}
+// ---------- sources ----------
+function buildSources(){const o=[];o.push('<optgroup label="Mini levels">');L.generateLevels().forEach((l,i)=>o.push(`<option value="m${i}">L${l.number} ${l.name}</option>`));o.push('</optgroup><optgroup label="Tapestries (whole picture)">');
+ L.makePictures().forEach((p,i)=>o.push(`<option value="t${i}">${p.name} (${p.w}x${p.h})</option>`));o.push('</optgroup>');const d=localStorage.getItem('stitchEditor');if(d)o.push('<optgroup label="Draft"><option value="d">Last autosave</option></optgroup>');$('src').innerHTML=o.join('')}
+function loadSource(v){
+ if(v==='d'){S=JSON.parse(localStorage.getItem('stitchEditor'));}
+ else if(v[0]==='m'){const lv=L.generateLevels()[+v.slice(1)];S=blank(lv.w,lv.h,lv.name);S.cells=lv.cells.map(c=>c==='#'?'.':c==='.'?'.':c.toUpperCase());
+  S.spools[0]=lv.spools.map(s=>s.color+s.length).join(' ');S.diff=Math.min(5,Math.max(1,Math.round(lv.number/4)))}
+ else{const p=L.makePictures()[+v.slice(1)];S=blank(p.w,p.h,p.name);S.cells=p.rows.join('').split('');S.palette={...BASE,...p.palette};S.background=p.background;S.tap=true;S.diff=p.diff??3;S.diffs=p.diffs?[...p.diffs]:[];
+  (p.baked||[]).forEach((t,i)=>S.spools[i]=t);$('tid').value=p.id}
+ hist=[];redo=[];sel=0;solCache=null;$('name').value=S.name;refresh(true)}
+// ---------- drawing ----------
+const cv=$('cv'),g=cv.getContext('2d');let cs=26;
+function draw(){cs=+$('zoom').value;cv.width=S.w*cs;cv.height=S.h*cs;g.fillStyle=S.background;g.fillRect(0,0,cv.width,cv.height);
+ for(let y=0;y<S.h;y++)for(let x=0;x<S.w;x++){const c=S.cells[y*S.w+x];if(c==='.')continue;g.fillStyle=S.palette[c]||'#f0f';g.fillRect(x*cs,y*cs,cs,cs)}
+ g.strokeStyle='#0003';g.lineWidth=1;g.beginPath();for(let x=0;x<=S.w;x++){g.moveTo(x*cs+.5,0);g.lineTo(x*cs+.5,S.h*cs)}for(let y=0;y<=S.h;y++){g.moveTo(0,y*cs+.5);g.lineTo(S.w*cs,y*cs+.5)}g.stroke();
+ if(S.tap){g.strokeStyle='#fff8';g.lineWidth=2;g.beginPath();for(let x=0;x<=S.w;x+=8){g.moveTo(x*cs,0);g.lineTo(x*cs,S.h*cs)}for(let y=0;y<=S.h;y+=8){g.moveTo(0,y*cs);g.lineTo(S.w*cs,y*cs)}g.stroke();
+  const b=pieceBox(S,sel);g.strokeStyle='#ffd34d';g.lineWidth=3;g.strokeRect(b.x*cs+1.5,b.y*cs+1.5,b.w*cs-3,b.h*cs-3)}
+ if($('showsol').checked)drawSolution()}
+function drawSolution(){const sol=solutionFor(sel);if(!sol)return;const b=pieceBox(S,sel);g.lineWidth=Math.max(2,cs*.14);g.lineJoin='round';
+ sol.forEach(({color,path},k)=>{g.strokeStyle='#000c';g.fillStyle='#fff';g.beginPath();path.forEach((i,j)=>{const x=(b.x+i%b.w+.5)*cs,y=(b.y+(i/b.w|0)+.5)*cs;j?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();
+  const i0=path[0],x0=(b.x+i0%b.w+.5)*cs,y0=(b.y+(i0/b.w|0)+.5)*cs;g.beginPath();g.arc(x0,y0,cs*.28,0,7);g.fill();g.fillStyle='#000';g.font='bold '+Math.round(cs*.32)+'px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(k+1,x0,y0)})}
+function solutionFor(i){const t=S.spools[i];if(!t)return null;const k=i+'|'+t+'|'+rowsKey(i);if(solCache&&solCache.k===k)return solCache.v;let v=null;try{v=L.levelFromBaked(0,'x',pieceRows(S,i),t).solution}catch{}solCache={k,v};return v}
+const rowsKey=i=>pieceRows(S,i).join('');
+// ---------- tools ----------
+const TOOLS=[['pen','Pen'],['erase','Eraser'],['fill','Fill'],['pick','Pick'],['line','Line']];
+function buildTools(){$('tools').innerHTML=TOOLS.map(([k,n])=>`<button class="alt ${tool===k?'on':''}" data-tool="${k}">${n}</button>`).join('')+'<button class="alt" id="clearall">Clear</button>';
+ $('tools').onclick=e=>{const b=e.target.closest('[data-tool]');if(b){tool=b.dataset.tool;buildTools()}if(e.target.id==='clearall'){snapshot();S.cells.fill('.');refresh()}}}
+function buildPalette(){$('palette').innerHTML=Object.keys(BASE).map(c=>`<div class="sw ${cur===c?'on':''}" data-c="${c}" style="background:${S.palette[c]}" title="${c}: click to select, double-click to change the colour"><small>${c}</small></div>`).join('')+`<div class="sw ${cur==='.'?'on':''}" data-c="." style="background:${S.background};border-style:dashed;border-color:${cur==='.'?'#fff':'#888'}" title="bare fabric"><small>.</small></div><input type="color" id="colorpick" hidden>`;
+ $('palette').onclick=e=>{const s=e.target.closest('.sw');if(s){cur=s.dataset.c;buildPalette()}};
+ $('palette').ondblclick=e=>{const s=e.target.closest('.sw');if(!s)return;const c=s.dataset.c,inp=$('colorpick');inp.value=c==='.'?S.background:S.palette[c];inp.oninput=()=>{c==='.'?S.background=inp.value:S.palette[c]=inp.value;buildPalette();draw();save()};inp.click()}}
+const at=e=>{const r=cv.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/cs),y=Math.floor((e.clientY-r.top)/cs);return x>=0&&y>=0&&x<S.w&&y<S.h?[x,y]:null};
+function setCell(x,y,c){S.cells[y*S.w+x]=c;if($('mirror').checked)S.cells[y*S.w+(S.w-1-x)]=c}
+function flood(x,y,c){const t=S.cells[y*S.w+x];if(t===c)return;const q=[[x,y]];while(q.length){const [a,b]=q.pop();if(a<0||b<0||a>=S.w||b>=S.h||S.cells[b*S.w+a]!==t)continue;setCell(a,b,c);q.push([a+1,b],[a-1,b],[a,b+1],[a,b-1])}}
+let lineStart=null;
+cv.addEventListener('pointerdown',e=>{const p=at(e);if(!p)return;cv.setPointerCapture(e.pointerId);
+ if(S.tap&&e.shiftKey){sel=(p[1]>>3)*(S.w/8)+(p[0]>>3);refresh();return}
+ if(e.button===2||tool==='pick'){const c=S.cells[p[1]*S.w+p[0]];cur=c;tool=tool==='pick'?'pen':tool;buildTools();buildPalette();return}
+ snapshot();const c=tool==='erase'?'.':cur;
+ if(tool==='fill'){flood(p[0],p[1],c);refresh();return}
+ if(tool==='line'){lineStart=p;return}
+ drag=true;setCell(p[0],p[1],c);draw()});
+cv.addEventListener('pointermove',e=>{if(!drag)return;const p=at(e);if(!p)return;setCell(p[0],p[1],tool==='erase'?'.':cur);draw()});
+cv.addEventListener('pointerup',e=>{if(lineStart){const p=at(e)||lineStart,[x0,y0]=lineStart,[x1,y1]=p,n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0))||1;for(let i=0;i<=n;i++)setCell(Math.round(x0+(x1-x0)*i/n),Math.round(y0+(y1-y0)*i/n),cur);lineStart=null;refresh()}
+ if(drag){drag=false;refresh()}
+ if(S.tap&&!e.shiftKey&&!drag){const p=at(e);if(p&&tool!=='pen'&&false){}}});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('dblclick',e=>{const p=at(e);if(S.tap&&p){sel=(p[1]>>3)*(S.w/8)+(p[0]>>3);refresh()}});
+// ---------- analysis ----------
+function comps(rows){const h=rows.length,w=rows[0].length,seen=new Set(),out={};for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=rows[y][x];if(c==='.'||seen.has(y*w+x))continue;const q=[[x,y]];seen.add(y*w+x);let n=0;
+  for(let k=0;k<q.length;k++){const [cx,cy]=q[k];n++;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=w||ny>=h||seen.has(ny*w+nx)||rows[ny][nx]!==c)continue;seen.add(ny*w+nx);q.push([nx,ny])}}
+  (out[c]=out[c]||[]).push(n)}return out}
+function analyze(){const rows=pieceRows(S,sel),cm=comps(rows),total=rows.join('').replace(/\./g,'').length,w=[];let h='';
+ for(const c of Object.keys(cm).sort()){const sizes=cm[c].sort((a,b)=>b-a),sum=sizes.reduce((a,b)=>a+b,0);const single=sizes.filter(n=>n<2).length;if(single)w.push(`${c}: ${single} isolated single cell(s) cannot be stitched with min length 2`);
+  h+=`<span class="chip" style="background:${S.palette[c]}">${c} ${sum}</span><span class="dim">regions: ${sizes.join(', ')}</span><br>`}
+ const t=S.spools[sel];if(t){const per={};t.trim().split(/\s+/).forEach(x=>{if(x)per[x[0]]=(per[x[0]]||0)+ +x.slice(1)});for(const c of Object.keys(cm)){const sum=cm[c].reduce((a,b)=>a+b,0);if((per[c]||0)!==sum)w.push(`${c}: spools total ${per[c]||0} but ${sum} cells (re-split)`)}for(const c of Object.keys(per))if(!cm[c])w.push(`${c}: spools exist but no cells`)}
+ $('analysis').innerHTML=`<div>${total} cells in ${S.tap?'piece '+(sel+1):'this level'}</div>${h||'<span class="dim">empty</span>'}${w.length?'<p class="warn">'+w.join('<br>')+'</p>':'<p class="good">no problems found</p>'}`}
+// ---------- splitting ----------
+const diffName=()=>L.DIFF_NAME[+$('diff').value]+' (target '+Math.round(L.TRAP_TARGET[+$('diff').value]*100)+'% traps)';
+function opts(i,d){return{diff:d,seed:(+$('seed').value||1)+i*17,name:S.name,number:i+1,minLen:+$('minlen').value,maxSpools:+$('maxsp').value}}
+function splitPiece(i,d){const lv=L.splitLevel(pieceRows(S,i),opts(i,d));S.spools[i]=L.spoolText(lv);S.baked[i]={trap:lv.trap,target:lv.trapTarget,range:lv.trapRange,hearts:L.DIFF_HEARTS[d]};return lv}
+function doSplit(all){$('splitinfo').textContent='working...';setTimeout(()=>{try{snapshot();const idx=all?[...Array(pieceCount(S)).keys()]:[sel];for(const i of idx){const d=S.tap?(S.diffs[i]??S.diff):+$('diff').value;if(!pieceRows(S,i).join('').replace(/\./g,''))continue;splitPiece(i,d)}
+   if(!all&&S.tap)S.diffs[sel]=+$('diff').value;solCache=null;refresh();const over=idx.filter(i=>S.spools[i]&&S.spools[i].trim().split(/\s+/).length>+$('maxsp').value);$('splitinfo').innerHTML='<span class="good">done</span>'+(over.length?'<br><span class="warn">piece(s) '+over.map(i=>i+1).join(', ')+' exceed '+$('maxsp').value+' spools (the game tray holds 12): simplify the art there or raise the difficulty</span>':'')}catch(e){$('splitinfo').innerHTML='<span class="warn">'+e.message+'</span>'}},20)}
+function showSpools(){const t=S.spools[sel]||'',info=S.baked[sel];$('pieceLabel').textContent=S.tap?`(piece ${sel+1})`:'';$('spooltext').value=t;
+ $('chips').innerHTML=t.trim()?t.trim().split(/\s+/).map(x=>`<span class="chip" style="background:${S.palette[x[0]]||'#888'}">${x}</span>`).join(''):'<span class="dim">no spools yet - press Split spools</span>';
+ if(info){const lo=info.range[0],hi=info.range[1],tg=info.target,tr=info.trap;$('spoolinfo').innerHTML=`<div>trap rate <b>${tr}</b> (target ${tg}) &middot; reachable ${lo}-${hi} &middot; hearts ${info.hearts}</div><div class="bar"><i style="left:${lo*100}%;width:${Math.max(1,(hi-lo)*100)}%;background:#6b5a4f"></i><i style="left:${tg*100-.5}%;width:1%;background:#ffd34d"></i><i style="left:${tr*100-.5}%;width:1%;background:#8fd19e"></i></div><div class="dim">grey = range this art allows, yellow = target, green = result. If the target is outside the grey band, change the picture.</div>`}else $('spoolinfo').innerHTML=''}
+$('applyspools').onclick=()=>{try{const t=$('spooltext').value.trim(),lv=L.levelFromBaked(0,S.name,pieceRows(S,sel),t);let rej=0,att=0;const rng=L.mulberry32(5);
+  for(const c of new Set(lv.spools.map(s=>s.color))){const [r,a]=L.trapCount(lv,c,lv.spools.filter(s=>s.color===c).map(s=>s.length),rng,10);rej+=r;att+=a}
+  snapshot();S.spools[sel]=t;S.baked[sel]={trap:att?+(rej/att).toFixed(2):0,target:L.TRAP_TARGET[+$('diff').value],range:[0,1],hearts:L.DIFF_HEARTS[+$('diff').value]};solCache=null;refresh();$('spoolinfo').innerHTML+='<p class="good">verified: solvable</p>'}catch(e){$('spoolinfo').innerHTML='<p class="warn">'+e.message+'</p>'}};
+function showPieces(){if(!S.tap){$('pieces').textContent='tapestry mode off (the whole grid is one level)';return}
+ let h='<table><tr><th>#</th><th>diff</th><th>spools</th><th>trap</th></tr>';for(let i=0;i<pieceCount(S);i++){const b=S.baked[i],cells=pieceRows(S,i).join('').replace(/\./g,'').length;h+=`<tr class="click ${i===sel?'sel':''}" data-p="${i}"><td>${i+1}</td><td>${S.diffs[i]??S.diff}</td><td>${S.spools[i]?S.spools[i].split(/\s+/).length:cells?'-':'empty'}</td><td>${b?b.trap:''}</td></tr>`}
+ $('pieces').innerHTML=h+'</table><p class="dim">Click a row (or double-click a piece) to select it. Each piece has its own difficulty.</p>'}
+$('pieces').onclick=e=>{const r=e.target.closest('[data-p]');if(r){sel=+r.dataset.p;$('diff').value=S.diffs[sel]??S.diff;refresh()}};
+// ---------- refresh ----------
+function refresh(rebuild){if(rebuild){$('gw').value=S.w;$('gh').value=S.h;$('tapmode').checked=S.tap;$('diff').value=S.diffs[sel]??S.diff;buildTools();buildPalette()}
+ $('diffname').textContent=diffName();draw();analyze();showSpools();showPieces();save()}
+// ---------- header / inputs ----------
+$('load').onclick=()=>loadSource($('src').value);
+$('blank').onclick=()=>{S=blank(+$('gw').value||8,+$('gh').value||8);hist=[];sel=0;$('name').value=S.name;refresh(true)};
+$('resize').onclick=()=>{snapshot();const w=Math.max(2,Math.min(64,+$('gw').value)),h=Math.max(2,Math.min(64,+$('gh').value)),n=Array(w*h).fill('.');for(let y=0;y<Math.min(h,S.h);y++)for(let x=0;x<Math.min(w,S.w);x++)n[y*w+x]=S.cells[y*S.w+x];S.w=w;S.h=h;S.cells=n;if(S.tap&&(w%8||h%8)){S.tap=false;$('tapmode').checked=false}S.spools={};S.baked={};sel=0;refresh()};
+$('tapmode').onchange=()=>{if($('tapmode').checked&&(S.w%8||S.h%8)){alert('Grid must be a multiple of 8 in both directions (use Resize).');$('tapmode').checked=false;return}S.tap=$('tapmode').checked;S.spools={};S.baked={};sel=0;refresh()};
+$('diff').oninput=()=>{$('diffname').textContent=diffName();if(S.tap)S.diffs[sel]=+$('diff').value;save()};
+$('name').oninput=()=>{S.name=$('name').value;save()};
+$('split').onclick=()=>doSplit(false);$('splitall').onclick=()=>doSplit(true);
+$('reroll').onclick=()=>{$('seed').value=(+$('seed').value||1)+1+(Math.random()*50|0);doSplit(false)};
+$('zoom').oninput=draw;$('showsol').onchange=draw;
+$('undo').onclick=()=>{if(!hist.length)return;redo.push(JSON.stringify({cells:S.cells,w:S.w,h:S.h,palette:S.palette}));restore(hist.pop())};
+$('redo').onclick=()=>{if(!redo.length)return;hist.push(JSON.stringify({cells:S.cells,w:S.w,h:S.h,palette:S.palette}));restore(redo.pop())};
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click()}if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();$('redo').click()}
+ const k={p:'pen',e:'erase',f:'fill',i:'pick',l:'line'}[e.key];if(k){tool=k;buildTools()}});
+// ---------- export ----------
+let exp={text:'',ext:'txt'};
+function idOf(){return ($('tid').value||'mytap').replace(/[^a-z0-9_]/gi,'')}
+function exportTap(){if(!S.tap)return '// switch on "tapestry mode" (grid multiple of 8) to export a tapestry entry';
+ const art=[];for(let y=0;y<S.h;y++){let t='';for(let x=0;x<S.w;x++){if(x&&x%8===0)t+=' ';t+=S.cells[y*S.w+x]}art.push(t)}
+ const used=[...new Set(S.cells.filter(c=>c!=='.'))].sort(),pal='{'+used.map(c=>c+":'"+S.palette[c]+"'").join(',')+'}',n=pieceCount(S),spl=[];for(let i=0;i<n;i++)spl.push(S.spools[i]||'');
+ const diffs=Array.from({length:n},(_,i)=>S.diffs[i]??S.diff);
+ return `  {id:'${idOf()}',name:'${S.name.replace(/'/g,"\\'")}',short:'${S.name.split(' ')[0].replace(/'/g,"")}',background:'${S.background}',palette:${pal},diff:${S.diff},diffs:[${diffs}],cfg:{},art:\`\n${art.join('\n')}\n\`,spools:\`\n${spl.join('\n')}\n\`}`}
+function exportMotif(){const rows=rowsOf(S).map(r=>"'"+r+"'").join(',');return `['${S.name.replace(/'/g,"\\'")}',[${rows}]]  // spools: ${S.spools[0]||'(not split)'}`}
+document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{const k=b.dataset.exp;if(k==='tap')exp={text:exportTap(),ext:'js'};else if(k==='motif')exp={text:exportMotif(),ext:'js'};else exp={text:JSON.stringify(S),ext:'json'};$('out').textContent=exp.text});
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(exp.text)}catch{const t=document.createElement('textarea');t.value=exp.text;document.body.append(t);t.select();document.execCommand('copy');t.remove()}$('copy').textContent='Copied';setTimeout(()=>$('copy').textContent='Copy',900)};
+$('dl').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([exp.text]));a.download=idOf()+'.'+exp.ext;a.click()};
+$('import').onclick=()=>$('jsonfile').click();
+$('jsonfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{S=Object.assign(blank(8,8),JSON.parse(await f.text()));hist=[];sel=0;$('name').value=S.name;refresh(true)}catch(err){alert('bad file: '+err.message)}};
+// ---------- picture import ----------
+let imgEl=null;
+$('img').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{imgEl=im;$('igo').disabled=false;if($('ikeep').checked){$('irows').value=Math.max(4,Math.round(+$('icols').value*im.height/im.width))}};im.src=URL.createObjectURL(f)};
+$('icols').oninput=()=>{if(imgEl&&$('ikeep').checked)$('irows').value=Math.max(4,Math.round(+$('icols').value*imgEl.height/imgEl.width))};
+const lumHex=h=>{const n=parseInt(h.slice(1),16);return .3*(n>>16)+.59*((n>>8)&255)+.11*(n&255)};
+function kmeans(px,k){let s=7;const rnd=()=>(s=(s*1664525+1013904223)>>>0)/4294967296;let cent=[px[rnd()*px.length|0].slice()];
+ while(cent.length<k){const d=px.map(p=>Math.min(...cent.map(c=>(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2))),sum=d.reduce((a,b)=>a+b,0);if(!sum)break;let r=rnd()*sum,i=0;while(i<d.length-1&&(r-=d[i])>0)i++;cent.push(px[i].slice())}
+ for(let it=0;it<12;it++){const acc=cent.map(()=>[0,0,0,0]);for(const p of px){let b=0,bd=1e18;cent.forEach((c,j)=>{const dd=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2;if(dd<bd){bd=dd;b=j}});const a=acc[b];a[0]+=p[0];a[1]+=p[1];a[2]+=p[2];a[3]++}cent=cent.map((c,j)=>acc[j][3]?[acc[j][0]/acc[j][3],acc[j][1]/acc[j][3],acc[j][2]/acc[j][3]]:c)}return cent}
+$('igo').onclick=()=>{if(!imgEl)return;snapshot();const W=Math.max(4,Math.min(64,+$('icols').value)),H=Math.max(4,Math.min(64,+$('irows').value)),K=Math.max(2,Math.min(11,+$('ik').value));
+ const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(imgEl,0,0,W,H);const d=x.getImageData(0,0,W,H).data,px=[],alpha=[];
+ for(let i=0;i<W*H;i++){px.push([d[i*4],d[i*4+1],d[i*4+2]]);alpha.push(d[i*4+3])}
+ const cent=kmeans(px,K),idx=px.map(p=>{let b=0,bd=1e18;cent.forEach((q,j)=>{const dd=(p[0]-q[0])**2+(p[1]-q[1])**2+(p[2]-q[2])**2;if(dd<bd){bd=dd;b=j}});return b});
+ const hex=q=>'#'+q.map(v=>Math.round(v).toString(16).padStart(2,'0')).join(''),count=cent.map((_,j)=>idx.filter(v=>v===j).length);
+ let bg=-1;if($('ibg').checked)bg=count.indexOf(Math.max(...count));
+ const order=cent.map((_,j)=>j).filter(j=>j!==bg&&count[j]>0).sort((a,b)=>lumHex(hex(cent[a]))-lumHex(hex(cent[b]))),letters=order.map((_,k)=>k===order.length-1?'C':LET[k]),map={},pal={...BASE};
+ order.forEach((j,k)=>{map[j]=letters[k];pal[letters[k]]=hex(cent[j])});
+ S=blank(W,H,S.name);S.palette=pal;S.background=bg>=0?hex(cent[bg]):'#f1e1c4';S.cells=idx.map((v,i)=>alpha[i]<80||v===bg?'.':map[v]);
+ cleanSingles(S);$('gw').value=W;$('gh').value=H;sel=0;hist.length||0;refresh(true)};
+function cleanSingles(s){const box=s.tap?8:Math.max(s.w,s.h);for(let it=0;it<6;it++){let ch=0;for(let py=0;py<s.h;py+=box)for(let px=0;px<s.w;px+=box){const rows=rowsOf(s,px,py,Math.min(box,s.w-px),Math.min(box,s.h-py)),w=rows[0].length,h=rows.length;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=rows[y][x];if(c==='.')continue;let same=0;const cnt={};for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=w||ny>=h)continue;const n=rows[ny][nx];if(n===c)same++;else if(n!=='.')cnt[n]=(cnt[n]||0)+1}
+   if(!same){const best=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];s.cells[(py+y)*s.w+px+x]=best||'.';ch++}}}if(!ch)break}}
+// ---------- start ----------
+buildSources();S=blank(8,8);buildTools();buildPalette();refresh(true);
+</script></body></html>
