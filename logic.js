@@ -361,7 +361,7 @@
  const PIECE=8;
  const TAPESTRY_CFG={minLen:2,prefLen:3,kmin:1,kmax:1,torn:0,cands:10,botRuns:6};
  const TAP=[
-  {id:'duck',name:'Duck Pond',short:'Duck',background:'#43d5dc',palette:{B:'#16a8e0',C:'#f3f8f9',K:'#136778',O:'#cfe5eb',T:'#e0714b'},diff:1,diffs:[2,1,1,1,2,1,1,1,1],cfg:{},art:`
+  {id:'duck',name:'Duck Pond',short:'Duck',background:'#43d5dc',palette:{B:'#16a8e0',C:'#f3f8f9',K:'#136778',O:'#cfe5eb',T:'#e0714b'},diff:1,diffs:[2,1,1,1,2,1,1,1,1],difficultyLabels:["medium",null,"hard","medium","hard",null,null,"medium",null],cfg:{},art:`
 BBBBBBBB ....BBBB BBBBBBBB
 BBBB.... .......B BBBBBBBB
 B.BBB... ........ ..BBBBBB
@@ -398,7 +398,7 @@ B20 B8 B3 B1 B1 O2 T5 T3 C5 C4 C3 C1
 B6 B6 B5 B3 B3 B3 B1 B1 B1 C7 C2 C1
 `},
 
-  {id:'moon',name:'Moonlit Clouds',short:'Moonlit',background:'#17295f',palette:{C:'#efe0a8',G:'#34609c',K:'#0c1633',T:'#5584bc',V:'#464f98'},diff:2,diffs:[2,2,2,2,2,2,3,3],cfg:{},art:`
+  {id:'moon',name:'Moonlit Clouds',short:'Moonlit',background:'#17295f',palette:{C:'#efe0a8',G:'#34609c',K:'#0c1633',T:'#5584bc',V:'#464f98'},diff:2,diffs:[2,2,2,2,2,2,3,3],difficultyLabels:[null,null,null,null,null,null,"medium","medium"],cfg:{},art:`
 ........ ........
 ........ .C......
 .C...... ........
