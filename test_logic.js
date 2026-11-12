@@ -98,6 +98,42 @@ console.log(warn.length?'SOFT WARNINGS:\n - '+warn.join('\n - '):'all soft targe
  const s3=Logic.strandInfo(st3,'R');assert.deepEqual(s3.cells,[9]);assert.equal(s3.kind,'size');
  const s4=Logic.strandInfo(Logic.makeState(fx,new Set([2,1,0,4,8,9]),[{color:'R',length:6,done:true}]),'R');assert.equal(s4.cells.length,0);}
 
+// UI regression: a dead end must not poison a different route of the same length.
+{
+ const vm=require('node:vm'),html=fs.readFileSync(__dirname+'/index.html','utf8');
+ const extract=(name,next)=>html.slice(html.indexOf('function '+name+'('),html.indexOf('function '+next+'('));
+ const lv=Logic.parseLevel('Branch',['.R.','RRR','.RR'],99),spool={id:0,color:'R',length:6,done:false};
+ lv.spools=[spool];
+ const noop=()=>{},ctx={Logic,level:lv,game:{stitched:new Set(),spools:[spool]},selected:spool,parked:null,screen:'game',
+  settings:{reduced:true},stitchTimes:new Map(),performance:{now:()=>100},pitchBase:()=>0,cellCenter:()=>({x:0,y:0}),
+  play:noop,vibrate:noop,spark:noop,showTip:noop,updateUI:noop,CONFIG:{heartOnDeadEnd:false},stat:()=>({deadEnds:0}),
+  toastUntil:0,cutMode:false,app:{classList:{toggle:noop}},commitPath:()=>{throw Error('unexpected commit')}};
+ vm.createContext(ctx);
+ vm.runInContext(html.slice(html.indexOf('function currentPathStuck('),html.indexOf('const ICONS=')),ctx);
+ ctx.refreshBadges=()=>{ctx.instruction=ctx.instructionText()};
+ vm.runInContext(extract('enterCell','nearestCell')+extract('deadEnd','resize')+extract('pullBack','swipeStep'),ctx);
+ [3,4,1].forEach(i=>ctx.enterCell(i));
+ assert.equal(ctx.currentPathStuck(),true,'real dead end');
+ assert.equal(ctx.instructionText(),'Stuck \u2013 take a stitch back');
+ ctx.enterCell(4);ctx.enterCell(5);
+ assert.equal(ctx.parked.path.length,3);
+ assert.equal(ctx.currentPathStuck(),false,'rewind and turn at same length');
+ assert.equal(ctx.instruction,'3 more','instruction refresh clears warning immediately');
+ assert(Logic.legalNext(Logic.makeState(lv),ctx.parked.path,8,'R'),'down remains available');
+ ctx.enterCell(4);ctx.enterCell(1);ctx.pullBack();ctx.enterCell(7);
+ assert.equal(ctx.currentPathStuck(),false,'undo button and alternate branch');
+ ctx.parked=null;ctx.enterCell(3);ctx.enterCell(4);ctx.enterCell(5);
+ assert.equal(ctx.currentPathStuck(),false,'cancel and restart at same length');
+ ctx.game.stitched.add(8);
+ assert.equal(ctx.currentPathStuck(),true,'committed stitches block forward moves');
+ ctx.game.stitched.clear();
+ ctx.parked.spool={...spool,length:3};
+ assert.equal(ctx.currentPathStuck(),false,'completed spool is not a dead end');
+ ctx.parked=null;
+ assert.equal(ctx.currentPathStuck(),false,'no active path');
+ console.log('UI dead-end regression checks passed');
+}
+
 // 4. index.html carries the same logic block
 if(fs.existsSync(__dirname+'/index.html')){const html=fs.readFileSync(__dirname+'/index.html','utf8'),blk=html.split('// BEGIN PURE LOGIC')[1]?.split('// END PURE LOGIC')[0];
  console.log(blk&&blk.trim()===src.trim()?'index.html logic block is in sync':'WARNING: index.html logic block differs from logic.js - run node build.js')}
