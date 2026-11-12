@@ -208,7 +208,7 @@ const Logic=(()=>{
   for(const f of cs){if(seen.has(f))continue;const comp=[f];seen.add(f);
    for(let k=0;k<comp.length;k++)for(const y of A[comp[k]])if(rem[y]&&!seen.has(y)){seen.add(y);comp.push(y)}
    if(!canSum(comp.length,lens))bad.push(comp)}
-  if(bad.length)return{kind:lens.length?'size':'nospool',cells:bad.flat(),sizes:bad.map(b=>b.length),lens};
+  if(bad.length)return{kind:lens.length?'size':'nospool',cells:bad.flat(),sizes:bad.map(b=>b.length),lens,groups:bad};
   return{kind:'shape',cells:cs,sizes:[cs.length],lens}}
 
  // ---- tapestries: each 8-column block is a playable piece ----
