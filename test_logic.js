@@ -170,6 +170,33 @@ console.log(warn.length?'SOFT WARNINGS:\n - '+warn.join('\n - '):'all soft targe
  console.log('Camera fit and hit-testing checks passed on 5 viewport sizes');
 }
 
+// First rejected commit teaches once, persists across sessions, and preserves heart rules.
+{
+ const vm=require('node:vm'),html=fs.readFileSync(__dirname+'/index.html','utf8');
+ const code=html.slice(html.indexOf('function strandMessage('),html.indexOf('function deadEnd('));
+ const make=(savedTips=[],hearts=3,bonus=0)=>{
+  const level=Logic.parseLevel('Lesson',['RRR','RRR'],10),spools=[0,1].map(id=>({id,color:'R',length:3,done:false}));level.spools=spools;
+  const counters={rejected:0,heartsLost:0},noop=()=>{},ctx={Logic,level,game:{hearts,bonus,stitched:new Set(),spools,history:[]},
+   parked:{path:[0,1,4],spool:spools[0]},effects:[],stitchTimes:new Map(),tips:new Set(savedTips),CLEAN:false,DEMO:false,
+   CONFIG:{solverNodeLimit:200000},performance:{now:()=>100},stat:()=>counters,hideTip:noop,play:noop,vibrate:noop,loseHeartFx:noop,
+   updateUI:noop,setTimeout:noop,fail:noop,toast:(text,ms)=>{ctx.message=text;ctx.messageMs=ms},persist:()=>{ctx.savedTips=[...ctx.tips]}};
+  vm.createContext(ctx);vm.runInContext(code,ctx);return ctx;
+ };
+ const first=make();first.commitPath();
+ assert.equal(first.message,'Chừa đường cho cuộn còn lại!');
+ assert.equal(first.messageMs,5200);assert.equal(first.effects[0].hold,2200);
+ assert.equal(first.effects.find(e=>e.type==='strand').duration,5200);
+ assert.equal(first.game.hearts,2);assert.equal(first.game.stitched.size,0);
+ assert.equal(first.game.spools[0].done,false);assert(first.savedTips.includes('strandMistake'));
+ const again=make(first.savedTips);again.commitPath();
+ assert.notEqual(again.message,first.message);assert.equal(again.messageMs,3800);
+ assert.equal(again.effects[0].hold,1100);assert.equal(again.effects.find(e=>e.type==='strand').duration,4200);
+ const shielded=make([],3,1);shielded.commitPath();assert.equal(shielded.game.hearts,3);assert.equal(shielded.game.bonus,0);
+ const fatal=make([],1);fatal.commitPath();assert.equal(fatal.game.hearts,0);
+ assert(!fatal.tips.has('strandMistake'),'do not mark an unseen lesson when the failure screen interrupts it');
+ console.log('First mistake onboarding checks passed');
+}
+
 // 4. index.html carries the same logic block
 if(fs.existsSync(__dirname+'/index.html')){const html=fs.readFileSync(__dirname+'/index.html','utf8'),blk=html.split('// BEGIN PURE LOGIC')[1]?.split('// END PURE LOGIC')[0];
  console.log(blk&&blk.trim()===src.trim()?'index.html logic block is in sync':'WARNING: index.html logic block differs from logic.js - run node build.js')}
