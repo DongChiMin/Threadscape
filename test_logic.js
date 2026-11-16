@@ -176,6 +176,21 @@ console.log(warn.length?'SOFT WARNINGS:\n - '+warn.join('\n - '):'all soft targe
  console.log('First mistake onboarding checks passed');
 }
 
+// hi-res reveal art: round trip, consistency check, entry writer, and every baked hires decodes and matches its grid
+{const L=Logic,K=L.HIRES_K;
+ for(const p of L.makePictures()){
+  if(p.hires){const hr=L.decodeHires(p),c=L.hiresCheck(p,p.hires);assert.equal(hr.w,p.w*K);assert(c.ratio>=.5,p.id+' hires consistency '+c.ratio)}
+  // a plain nearest-neighbour upscale (with a darker 1px shade inside each block) must quantise to a fully consistent hires
+  const w=p.w*K,px=Array.from({length:w*p.h*K},(_,i)=>{const x=i%w,y=i/w|0,ch=p.rows[y/K|0][x/K|0],base=[1,3,5].map(j=>parseInt((ch==='.'?p.background:p.palette[ch]).slice(j,j+2),16));return x%K===0&&y%K===0?base.map(v=>v*.7):base});
+  const hr=L.quantizeHires(p,px,{colors:24}),chk=L.hiresCheck(p,hr);
+  assert.equal(chk.ratio,1,p.id+' synthetic hires should be fully consistent, bad='+JSON.stringify(chk.bad.slice(0,3)));
+  const d=L.decodeHires({...p,hires:hr});assert.equal(d.idx.length,w*p.h*K);
+ }
+ const src0="{id:'x',name:'X',cfg:{},art:`\nAB\n`,spools:``},",h1={k:4,palette:'Aff0000',data:'4A'},h2={k:4,palette:'B00ff00',data:'4A'};
+ const once=L.applyHiresEntry(src0,'x',h1),twice=L.applyHiresEntry(once,'x',h2);
+ assert(once.includes("hires:{k:4,palette:'Aff0000'"));assert(twice.includes("palette:'B00ff00'")&&!twice.includes('Aff0000'));assert(twice.endsWith("art:`\nAB\n`,spools:``},"));
+ console.log('Hi-res reveal checks passed')}
+
 // 4. index.html carries the same logic block
 if(fs.existsSync(__dirname+'/index.html')){const html=fs.readFileSync(__dirname+'/index.html','utf8'),blk=html.split('// BEGIN PURE LOGIC')[1]?.split('// END PURE LOGIC')[0];
  console.log(blk&&blk.trim()===src.trim()?'index.html logic block is in sync':'WARNING: index.html logic block differs from logic.js - run node build.js')}

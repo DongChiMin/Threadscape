@@ -23,12 +23,11 @@ function applyTapEntry(logicText, id, newEntry) {
   const startMarker = "{id:'" + id + "'";
   const startIdx = logicText.indexOf(startMarker);
   if (startIdx >= 0) {
-    let bt = startIdx, count = 0;
-    while (count < 4 && bt < logicText.length) {
-      bt = logicText.indexOf('`', bt + 1);
-      if (bt < 0) throw new Error('Không parse được entry cũ trong TAP[].');
-      count++;
-    }
+    // the entry ends after its spools:`...` block (an optional hires data:`...` block comes before art)
+    const spoolsIdx = logicText.indexOf('spools:`', startIdx);
+    if (spoolsIdx < 0) throw new Error('Không parse được entry cũ trong TAP[].');
+    const bt = logicText.indexOf('`', spoolsIdx + 8);
+    if (bt < 0) throw new Error('Không parse được entry cũ trong TAP[].');
     const closeIdx = logicText.indexOf('}', bt);
     if (closeIdx < 0) throw new Error('Không tìm thấy dấu đóng } sau spools backtick.');
     let lineStart = startIdx;

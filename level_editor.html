@@ -977,6 +977,24 @@ canvas.picking { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2
       </div>
 
       <button id="generateFromImgBtn" class="primary" disabled>🎨 <span data-i18n="generateGridBtn">Tạo lưới từ ảnh</span></button>
+
+      <hr style="border:none;border-top:1px solid #0002;margin:6px 0;">
+      <h3>✨ Ảnh chi tiết khi reveal (hi-res x4)</h3>
+      <p class="sub-desc">Ảnh chi tiết gấp 4 lần lưới gameplay, hiện ra khi hoàn thành mảnh/tranh. Mỗi khối 4×4 phải giữ màu chủ đạo của ô gameplay tương ứng (ô lệch được khoanh đỏ).</p>
+      <input type="file" id="hiresUploadInput" accept="image/*">
+      <div style="display:flex;gap:8px;align-items:end;">
+        <div style="flex:1">
+          <label style="font-size:11px;color:var(--dim);display:block;">Số màu hi-res</label>
+          <input type="number" id="hiresColors" min="8" max="52" value="30" style="width:100%;">
+        </div>
+        <button id="hiresGenBtn" class="primary" disabled>Tạo hi-res</button>
+        <button id="hiresClearBtn" class="alt">Xóa</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
+        <input type="checkbox" id="hiresShowBad" checked><span>Khoanh đỏ ô lệch màu</span>
+      </label>
+      <div id="hiresStatus" style="font-size:12px;color:var(--dim);"></div>
+      <canvas id="hiresPreview" hidden style="width:100%;image-rendering:pixelated;border-radius:6px;"></canvas>
     </div>
 
 
@@ -2383,6 +2401,69 @@ function applyTapEntry(logicText, id, newEntry) {
   }
 }
 
+// ---- hi-res reveal art (x4) ----
+const hiresPic = () => ({ id: S.tid || 'mytap', w: S.w, h: S.h, rows: Array.from({ length: S.h }, (_, y) => S.cells.slice(y * S.w, (y + 1) * S.w).join('')), palette: S.palette, background: S.background, hires: S.hires });
+function hiresValid() {
+  if (!S.hires || !S.tap) return null;
+  try {
+    const hr = L.decodeHires(hiresPic());
+    return hr.w === S.w * L.HIRES_K && hr.h === S.h * L.HIRES_K ? L.hiresCheck(hiresPic(), S.hires) : null;
+  } catch (e) { return null; }
+}
+function hiresFieldText() {
+  return hiresValid() ? "hires:{k:" + S.hires.k + ",palette:'" + S.hires.palette + "',data:`\n" + S.hires.data.trim() + "\n`}," : '';
+}
+function renderHiresPanel() {
+  const st = $('hiresStatus'), cv = $('hiresPreview'), vi = currentLang === 'vi';
+  const chk = hiresValid();
+  if (!chk) {
+    st.textContent = S.hires
+      ? (vi ? '⚠️ Hi-res không khớp kích thước lưới hiện tại (sẽ không được xuất).' : '⚠️ Hi-res does not match the grid size (will not be exported).')
+      : (vi ? 'Chưa có ảnh hi-res: reveal dùng lưới gameplay.' : 'No hi-res art: the reveal uses the gameplay grid.');
+    cv.hidden = true;
+    return;
+  }
+  const hr = L.decodeHires(hiresPic()), s = 3;
+  cv.width = hr.w * s; cv.height = hr.h * s; cv.hidden = false;
+  const g = cv.getContext('2d');
+  g.fillStyle = S.background || '#f1e1c4'; g.fillRect(0, 0, cv.width, cv.height);
+  for (let y = 0; y < hr.h; y++) for (let x = 0; x < hr.w; x++) {
+    const c = hr.colorAt(x, y);
+    if (c) { g.fillStyle = c; g.fillRect(x * s, y * s, s, s); }
+  }
+  if ($('hiresShowBad').checked) {
+    g.strokeStyle = '#ff2d55'; g.lineWidth = 2;
+    for (const b of chk.bad) g.strokeRect(b.x * hr.k * s + 1, b.y * hr.k * s + 1, hr.k * s - 2, hr.k * s - 2);
+  }
+  const nCol = S.hires.palette.trim().split(/\s+/).length;
+  st.textContent = `${hr.w}×${hr.h} · ${nCol} ${vi ? 'màu' : 'colours'} · ${vi ? 'khớp lưới' : 'grid match'} ${(chk.ratio * 100).toFixed(1)}%`
+    + (chk.bad.length ? ` (${chk.bad.length} ${vi ? 'ô lệch' : 'cells off'})` : '');
+}
+let hiresImg = null;
+$('hiresUploadInput').onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => { hiresImg = img; $('hiresGenBtn').disabled = false; };
+  img.src = URL.createObjectURL(file);
+};
+$('hiresGenBtn').onclick = () => {
+  if (!hiresImg) return;
+  if (!S.tap) { alert(currentLang === 'vi' ? 'Hi-res chỉ dùng cho tapestry.' : 'Hi-res is for tapestries only.'); return; }
+  const K = L.HIRES_K, W = S.w * K, H = S.h * K, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(hiresImg, 0, 0, W, H);
+  const d = g.getImageData(0, 0, W, H).data, px = [];
+  for (let i = 0; i < W * H; i++) px.push([d[i * 4], d[i * 4 + 1], d[i * 4 + 2]]);
+  snapshot();
+  S.hires = L.quantizeHires(hiresPic(), px, { colors: Math.max(8, Math.min(52, +$('hiresColors').value || 30)) });
+  renderHiresPanel();
+};
+$('hiresClearBtn').onclick = () => { snapshot(); S.hires = null; renderHiresPanel(); };
+$('hiresShowBad').onchange = renderHiresPanel;
+
 // Code Exporters
 function exportTapestryText() {
   const art = [];
@@ -2403,7 +2484,7 @@ function exportTapestryText() {
   const diffs = Array.from({ length: n }, (_, i) => S.diffs[i] ?? S.diff);
   const id = ($('levelTid').value || 'mytap').replace(/[^a-z0-9_]/gi, '');
 
-  return `{id:'${id}',name:'${S.name.replace(/'/g, "\\'")}',short:'${S.name.split(' ')[0]}',background:'${S.background}',palette:${pal},diff:${S.diff},diffs:[${diffs}],difficultyLabels:${JSON.stringify(difficultyLabels)},cfg:{},art:\`\n${art.join('\n')}\n\`,spools:\`\n${spl.join('\n')}\n\`}`;
+  return `{id:'${id}',name:'${S.name.replace(/'/g, "\\'")}',short:'${S.name.split(' ')[0]}',background:'${S.background}',palette:${pal},diff:${S.diff},diffs:[${diffs}],difficultyLabels:${JSON.stringify(difficultyLabels)},cfg:{},${hiresFieldText()}art:\`\n${art.join('\n')}\n\`,spools:\`\n${spl.join('\n')}\n\`}`;
 }
 
 function exportMotifText() {
@@ -2608,6 +2689,7 @@ function loadSource(val) {
     S.difficultyLabels = [...(p.difficultyLabels ?? [])];
     (p.baked || []).forEach((t, i) => S.spools[i] = t);
     S.tid = p.id;
+    S.hires = p.hires ? { ...p.hires } : null;
   }
 
   historyStack = [];
@@ -2680,6 +2762,7 @@ function refreshUI(rebuildInputs = false) {
 
   drawCanvas();
   renderPalette();
+  renderHiresPanel();
   renderPieceNavigator();
   renderSpoolBreakdown();
   preparePlaybackSteps();
