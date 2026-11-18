@@ -1,8 +1,9 @@
 // Hi-res reveal art pipeline for tapestries.
 //   node tools/hires_tool.js refs                 -> References/Hires/ref_<id>.png (gameplay grid, 1 cell = 12px, no grid lines)
-//   node tools/hires_tool.js apply <id> <png> [--colors N]
+//   node tools/hires_tool.js apply <id> <png> [--colors N] [--global]
 //        -> quantises the image to (w*4)x(h*4) stitches, checks it against the gameplay grid
 //           and writes the `hires` field into that tapestry's entry in logic.js (run `node build.js` after).
+//   node tools/hires_tool.js grid <id>           -> 1x: store the gameplay grid itself as the reveal art
 //   node tools/hires_tool.js preview <id>        -> References/Hires/preview_<id>.png (what is stored in logic.js)
 // Image decoding uses PowerShell/System.Drawing (Windows) so any jpg/png works without npm packages.
 const fs = require('node:fs'), path = require('node:path'), zlib = require('node:zlib'), cp = require('node:child_process');
@@ -37,11 +38,11 @@ function loadResized(file, W, H) {
   const b = fs.readFileSync(tmp); fs.unlinkSync(tmp); return b;
 }
 
-function apply(id, file, colors) {
+function apply(id, file, colors, opts = {}) {
   const p = Logic.makePictures().find(x => x.id === id); if (!p) throw Error('unknown tapestry ' + id);
   const K = Logic.HIRES_K, W = p.w * K, H = p.h * K, rgb = loadResized(file, W, H);
   const pixels = Array.from({ length: W * H }, (_, i) => [rgb[i * 3], rgb[i * 3 + 1], rgb[i * 3 + 2]]);
-  const hires = Logic.quantizeHires(p, pixels, { colors });
+  const hires = Logic.quantizeHires(p, pixels, { colors, ...opts });
   const check = Logic.hiresCheck(p, hires);
   console.log(`${id}: ${W}x${H}, ${hires.palette.split(' ').length} colours, ${hires.data.length} chars, consistency ${(check.ratio * 100).toFixed(1)}% (${check.bad.length} mismatched cells)`);
   const logicPath = path.join(ROOT, 'logic.js'), text = fs.readFileSync(logicPath, 'utf8');
@@ -56,6 +57,15 @@ function preview(id) {
   fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, 'preview_' + id + '.png'), png(W, H, buf)); console.log('preview_' + id + '.png');
 }
 
+// 1x: the gameplay grid itself, one stitch per coloured cell; background ('.') cells stay unstitched like in the level
+function grid(id) {
+  const p = Logic.makePictures().find(x => x.id === id); if (!p) throw Error('unknown tapestry ' + id);
+  const keys = [...new Set(p.rows.join(''))].filter(c => c !== '.'), palette = keys.map(c => ({ parent: c, hex: c === '.' ? p.background : p.palette[c] }));
+  const idx = Int16Array.from(p.rows.join(''), c => keys.indexOf(c)), hires = Logic.encodeHires(p.w, p.h, idx, palette, 1);
+  const logicPath = path.join(ROOT, 'logic.js'); fs.writeFileSync(logicPath, Logic.applyHiresEntry(fs.readFileSync(logicPath, 'utf8'), id, hires), 'utf8');
+  console.log(id + ': 1x grid, ' + keys.length + ' colours');
+}
+
 const [cmd, a, b] = process.argv.slice(2), ci = process.argv.indexOf('--colors'), colors = ci > 0 ? +process.argv[ci + 1] : undefined;
-if (cmd === 'refs') refs(); else if (cmd === 'apply') apply(a, b, colors); else if (cmd === 'preview') preview(a);
+if (cmd === 'refs') refs(); else if (cmd === 'apply') apply(a, b, colors, { global: process.argv.includes('--global'), cross: process.argv.includes('--global') ? 1 : undefined }); else if (cmd === 'preview') preview(a); else if (cmd === 'grid') grid(a);
 else console.log('usage: refs | apply <id> <image> [--colors N] | preview <id>');

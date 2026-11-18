@@ -179,7 +179,7 @@ console.log(warn.length?'SOFT WARNINGS:\n - '+warn.join('\n - '):'all soft targe
 // hi-res reveal art: round trip, consistency check, entry writer, and every baked hires decodes and matches its grid
 {const L=Logic,K=L.HIRES_K;
  for(const p of L.makePictures()){
-  if(p.hires){const hr=L.decodeHires(p),c=L.hiresCheck(p,p.hires);assert.equal(hr.w,p.w*K);assert(c.ratio>=.5,p.id+' hires consistency '+c.ratio)}
+  if(p.hires){const hr=L.decodeHires(p),c=L.hiresCheck(p,p.hires);assert.equal(hr.w,p.w*hr.k);assert(c.ratio>=.5,p.id+' hires consistency '+c.ratio)}
   // a plain nearest-neighbour upscale (with a darker 1px shade inside each block) must quantise to a fully consistent hires
   const w=p.w*K,px=Array.from({length:w*p.h*K},(_,i)=>{const x=i%w,y=i/w|0,ch=p.rows[y/K|0][x/K|0],base=[1,3,5].map(j=>parseInt((ch==='.'?p.background:p.palette[ch]).slice(j,j+2),16));return x%K===0&&y%K===0?base.map(v=>v*.7):base});
   const hr=L.quantizeHires(p,px,{colors:24}),chk=L.hiresCheck(p,hr);

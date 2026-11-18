@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8"><title>detail compare</title>
+<style>body{background:#3a2c22;color:#f3e6d0;font:13px sans-serif;margin:8px}.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}.row div{text-align:center}canvas{display:block;border-radius:4px}</style>
+<div id="out"></div>
+<script src="/logic.js"></script>
+<script>
+const hexRgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mix=(a,b,t)=>'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join()+')';
+function stitch(g,col,x,y,s){const c=hexRgb(col);g.fillStyle=mix(c,[20,12,6],.3);g.fillRect(Math.floor(x),Math.floor(y),Math.ceil(s)+1,Math.ceil(s)+1);
+ if(s<3){g.fillStyle=col;g.fillRect(Math.floor(x),Math.floor(y),Math.ceil(s),Math.ceil(s));return}
+ const q=s*.13;g.lineCap='round';g.lineWidth=s*.4;g.strokeStyle=mix(c,[20,12,6],.12);g.beginPath();g.moveTo(x+q,y+q);g.lineTo(x+s-q,y+s-q);g.stroke();
+ g.strokeStyle=col;g.beginPath();g.moveTo(x+s-q,y+q);g.lineTo(x+q,y+s-q);g.stroke();
+ if(s>=6){g.strokeStyle=mix(c,[255,250,235],.16);g.lineWidth=Math.max(.7,s*.07);g.beginPath();g.moveTo(x+s-q*1.6,y+q*2.4);g.lineTo(x+q*2.4,y+s-q*1.6);g.stroke()}}
+function load(src){return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=src})}
+function pixelsOf(img,W,H){let c=document.createElement('canvas'),cw=img.width,ch=img.height;c.width=cw;c.height=ch;let g=c.getContext('2d');g.drawImage(img,0,0);
+ while(cw/2>=W){const n=document.createElement('canvas');n.width=cw=Math.round(cw/2);n.height=ch=Math.round(ch/2);const ng=n.getContext('2d');ng.imageSmoothingQuality='high';ng.drawImage(c,0,0,cw,ch);c=n}
+ const f=document.createElement('canvas');f.width=W;f.height=H;const fg=f.getContext('2d');fg.imageSmoothingQuality='high';fg.drawImage(c,0,0,W,H);
+ const d=fg.getImageData(0,0,W,H).data,px=[];for(let i=0;i<W*H;i++)px.push([d[i*4],d[i*4+1],d[i*4+2]]);return px}
+function render(p,hires,D){const hr=Logic.decodeHires({...p,hires}),s=D/hr.w,c=document.createElement('canvas');c.width=D;c.height=Math.round(hr.h*s);const g=c.getContext('2d');g.fillStyle=p.background;g.fillRect(0,0,c.width,c.height);
+ for(let y=0;y<hr.h;y++)for(let x=0;x<hr.w;x++){const col=hr.colorAt(x,y);if(col)stitch(g,col,x*s,y*s,s)}return c}
+function grid(p,D){const s=D/p.w,c=document.createElement('canvas');c.width=D;c.height=Math.round(p.h*s);const g=c.getContext('2d');
+ for(let y=0;y<p.h;y++)for(let x=0;x<p.w;x++){const ch=p.rows[y][x];stitch(g,ch==='.'?p.background:p.palette[ch],x*s,y*s,s)}return c}
+(async()=>{const pics=Logic.makePictures(),D=+(new URLSearchParams(location.search).get('d')||300);
+ const ids=(new URLSearchParams(location.search).get('ids')||'fox,duck').split(',');
+ const V=[['A: hiện tại (8x, 44 màu)',8,44],['B: 4x, 20 màu',4,20],['C: 4x, 12 màu',4,12],['D: 2x, 12 màu',2,12]];
+ for(const id of ids){const p=pics.find(q=>q.id===id),img=await load('/References/Hires/paint_'+id+'.png'),row=document.createElement('div');row.className='row';document.getElementById('out').append(row);
+  const add=(t,cv)=>{const d=document.createElement('div');d.append(cv,t);row.append(d)};
+  add('Lưới chơi (1x)',grid(p,D));
+  for(const [t,k,colors] of V){const hi=Logic.quantizeHires(p,pixelsOf(img,p.w*k,p.h*k),{k,colors,global:true,cross:1});add(t,render(p,hi,D))}}
+ document.title='ready'})()
+</script>
